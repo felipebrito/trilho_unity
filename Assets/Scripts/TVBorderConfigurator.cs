@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
@@ -8,50 +7,47 @@ namespace Trilho
     public class TVBorderConfigurator : MonoBehaviour
     {
         [Header("Configuração de Bordas")]
+        [Tooltip("Transform da BORDA ESQUERDA (criado automaticamente se vazio)")]
         [SerializeField] private Transform leftBorder;
+        [Tooltip("Transform da BORDA DIREITA (criado automaticamente se vazio)")]
         [SerializeField] private Transform rightBorder;
+        [Tooltip("Altura visual dos marcadores de borda (apenas debug)")]
         [SerializeField] private float borderHeight = 1000f;
+        [Tooltip("Espessura visual dos marcadores de borda (apenas debug)")]
         [SerializeField] private float borderThickness = 10f;
+        [Tooltip("Cor dos marcadores de borda")]
         [SerializeField] private Color borderColor = Color.red;
         
         [Header("Persistência")]
+        [Tooltip("Carregar automaticamente as bordas salvas no início")]
         [SerializeField] private bool loadFromPrefsOnStart = true;
         private string prefsLeftKey;
         private string prefsRightKey;
         
-        // Follow removido para manter papel do script apenas como calibrador
-        
         [Header("Valores Iniciais (opcional)")]
+        [Tooltip("Posição X inicial da borda ESQUERDA (usado se não houver PlayerPrefs)")]
         [SerializeField] private float initialLeftX = 0f;
+        [Tooltip("Posição X inicial da borda DIREITA (usado se não houver PlayerPrefs)")]
         [SerializeField] private float initialRightX = 2000f;
+        [Tooltip("Aplicar os valores iniciais no Start se não houver dados salvos")]
         [SerializeField] private bool applyInitialOnStart = true;
         
-        [Header("Zonas/Conteúdos")]
-        [SerializeField] private List<SimpleZone> zones = new List<SimpleZone>();
-        [SerializeField] private float activationPadding = 0f; // margem adicional nas bordas
-        [SerializeField] private bool hideZoneContentsOnStart = true;
-        
-        [System.Serializable]
-        public class SimpleZone
-        {
-            public string zoneName = "Zona";
-            public float positionX;
-            public GameObject content; // Conteúdo a ativar quando a zona está entre as bordas
-            [HideInInspector] public bool isActive;
-        }
-        
-        [Header("Geração Automática de Zonas (Opcional)")]
-        [SerializeField] private int numberOfZones = 3;
-        
         [Header("Entrada / Runtime")]
+        [Tooltip("Quando ativo, permite mover as bordas com o teclado (F1 alterna)")]
         [SerializeField] private bool configurationMode = true;
-        [SerializeField] private float moveStep = 300f; // passo maior para ficar visível
+        [Tooltip("Passo de movimento (rápido)")]
+        [SerializeField] private float moveStep = 300f;
+        [Tooltip("Passo de movimento (fino) ao segurar Shift")]
         [SerializeField] private float fineStep = 30f;
+        [Tooltip("Exibir sobreposição de ajuda na tela")]
         [SerializeField] private bool showOverlay = true;
 
         [Header("Integração Trilho")]
+        [Tooltip("Referência ao TrilhoGameManager (detectado automaticamente se vazio)")]
         [SerializeField] private TrilhoGameManager trilho; // opcional; será encontrado automaticamente se vazio
+        [Tooltip("Usar largura manual ao sincronizar com o Trilho")]
         [SerializeField] private bool useManualWidth = false;
+        [Tooltip("Largura manual em centímetros (override)")]
         [SerializeField] private float manualWidthCm = 75.69f;
         
         private void Awake()
@@ -77,21 +73,7 @@ namespace Trilho
                 SetBorderX(rightBorder, initialRightX);
             }
             
-            // 3) Garantir conteúdos das zones ocultos no início, se desejado
-            if (hideZoneContentsOnStart)
-            {
-                InitializeZonesHidden();
-            }
-            
-            // 4) Criar exemplos apenas se nenhuma zona foi definida
-            if (zones.Count == 0)
-            {
-                zones.Add(new SimpleZone { zoneName = "Zona 1", positionX = 1000f });
-                zones.Add(new SimpleZone { zoneName = "Zona 2", positionX = 3000f });
-                zones.Add(new SimpleZone { zoneName = "Zona 3", positionX = 5000f });
-            }
-
-            // Sincroniza a largura inicial com o Trilho (após carregar/aplicar)
+            // 3) Sincroniza a largura calculada/definida com o Trilho
             SyncWidthToTrilho();
         }
         
@@ -104,8 +86,6 @@ namespace Trilho
             if (k.f1Key.wasPressedThisFrame) configurationMode = !configurationMode;
             
             if (configurationMode) HandleKeyboard(k);
-            
-            UpdateSimpleZonesActivation();
         }
         
         private void HandleKeyboard(Keyboard k)
@@ -122,7 +102,6 @@ namespace Trilho
             if (k.pKey.isPressed) MoveBorder(rightBorder, +step * Time.deltaTime);
             
             if (k.enterKey.wasPressedThisFrame) SaveBorders();
-            if (k.cKey.wasPressedThisFrame) ComputeZonesFromBorders();
             if (k.escapeKey.wasPressedThisFrame) configurationMode = false;
         }
         
@@ -165,26 +144,6 @@ namespace Trilho
             return go.transform;
         }
         
-        private void InitializeZonesHidden()
-        {
-            foreach (var z in zones)
-            {
-                if (z?.content == null) continue;
-                var cg = z.content.GetComponent<CanvasGroup>();
-                if (cg == null) cg = z.content.AddComponent<CanvasGroup>();
-                cg.alpha = 0f;
-                z.content.SetActive(false);
-                z.isActive = false;
-            }
-        }
-        
-        public void ApplyInitial()
-        {
-            EnsureBorders();
-            SetBorderX(leftBorder, initialLeftX);
-            SetBorderX(rightBorder, initialRightX);
-        }
-        
         [ContextMenu("Salvar Bordas")]
         public void SaveBorders()
         {
@@ -215,35 +174,6 @@ namespace Trilho
             Debug.Log("[BORDAS] PlayerPrefs limpos para este configurador.");
         }
         
-        [ContextMenu("Gerar Zonas Iguais entre as Bordas")] 
-        public void ComputeZonesFromBorders()
-        {
-            if (leftBorder == null || rightBorder == null)
-            {
-                Debug.LogError("[BORDAS] Bordas não configuradas.");
-                return;
-            }
-            
-            float leftX = leftBorder.position.x;
-            float rightX = rightBorder.position.x;
-            if (rightX <= leftX)
-            {
-                Debug.LogError("[BORDAS] A borda direita deve estar à direita da borda esquerda.");
-                return;
-            }
-            
-            float width = rightX - leftX;
-            float zoneWidth = width / Mathf.Max(1, numberOfZones);
-            
-            zones.Clear();
-            for (int i = 0; i < numberOfZones; i++)
-            {
-                float centerX = leftX + (i + 0.5f) * zoneWidth;
-                zones.Add(new SimpleZone { zoneName = $"Zona {i + 1}", positionX = centerX });
-            }
-            Debug.Log($"[BORDAS] {numberOfZones} zonas geradas para {width:F1} de largura.");
-        }
-
         [ContextMenu("Sincronizar Largura com Trilho")]
         public void SyncWidthToTrilho()
         {
@@ -265,43 +195,7 @@ namespace Trilho
                 widthCm = Mathf.Abs(rightCm - leftCm);
             }
             trilho.SetScreenWidthCm(widthCm);
-            Debug.Log($"[BORDAS] Largura sincronizada com Trilho: {widthCm:F1}cm");
-        }
-        
-        private void UpdateSimpleZonesActivation()
-        {
-            if (leftBorder == null || rightBorder == null) return;
-            float minX = Mathf.Min(leftBorder.position.x, rightBorder.position.x) - activationPadding;
-            float maxX = Mathf.Max(leftBorder.position.x, rightBorder.position.x) + activationPadding;
-            
-            foreach (var zone in zones)
-            {
-                if (zone == null) continue;
-                bool shouldBeActive = zone.positionX >= minX && zone.positionX <= maxX;
-                if (shouldBeActive != zone.isActive)
-                {
-                    if (shouldBeActive) ActivateContent(zone.content); else DeactivateContent(zone.content);
-                    zone.isActive = shouldBeActive;
-                }
-            }
-        }
-        
-        private void ActivateContent(GameObject content)
-        {
-            if (content == null) return;
-            var cg = content.GetComponent<CanvasGroup>();
-            if (cg == null) cg = content.AddComponent<CanvasGroup>();
-            cg.alpha = 1f;
-            content.SetActive(true);
-        }
-        
-        private void DeactivateContent(GameObject content)
-        {
-            if (content == null) return;
-            var cg = content.GetComponent<CanvasGroup>();
-            if (cg == null) cg = content.AddComponent<CanvasGroup>();
-            cg.alpha = 0f;
-            content.SetActive(false);
+            Debug.Log($"[BORDAS] Largura sincronizada com Trilho: {widthCm:F2}cm");
         }
         
         public float GetWidth()
@@ -345,24 +239,15 @@ namespace Trilho
             
             Gizmos.color = Color.cyan;
             Gizmos.DrawLine(a, b);
-            
-            if (zones != null)
-            {
-                Gizmos.color = Color.green;
-                foreach (var z in zones)
-                {
-                    Gizmos.DrawSphere(new Vector3(z.positionX, 0f, 0f), 25f);
-                }
-            }
         }
         
         private void OnGUI()
         {
             if (!showOverlay) return;
             GUI.backgroundColor = new Color(0f, 0f, 0f, 0.6f);
-            GUILayout.BeginArea(new Rect(10, 10, 660, 220), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(10, 10, 700, 260), GUI.skin.box);
             GUILayout.Label("Configuração de Bordas (Runtime)");
-            GUILayout.Label($"Esquerda X: {leftBorder?.position.x:F1} | Direita X: {rightBorder?.position.x:F1} | Largura: {GetWidth():F1}");
+            GUILayout.Label($"Esquerda X: {leftBorder?.position.x:F1} | Direita X: {rightBorder?.position.x:F1} | Largura (Unity): {GetWidth():F1}");
             
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("← E", GUILayout.Width(60))) MoveBorder(leftBorder, -moveStep * Time.deltaTime * 50f);
@@ -373,18 +258,14 @@ namespace Trilho
             GUILayout.EndHorizontal();
             
             configurationMode = GUILayout.Toggle(configurationMode, configurationMode ? "Modo Configuração ATIVO (F1)" : "Modo Configuração INATIVO (F1)");
-            GUILayout.Label("Controles: Q/W move ESQUERDA · O/P move DIREITA (Shift = fino) · Enter salva · C gera zonas · ESC sai");
-            GUILayout.Label($"Zonas: {zones?.Count ?? 0} (ativa quando posição está entre as bordas)");
+            GUILayout.Label("Controles: Q/W move ESQUERDA · O/P move DIREITA (Shift = fino) · Enter salva · ESC sai");
             
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Salvar (Enter)")) SaveBorders();
-            if (GUILayout.Button("Gerar Zonas Iguais (C)")) ComputeZonesFromBorders();
             if (GUILayout.Button("Enviar Largura ao Trilho")) SyncWidthToTrilho();
-            if (GUILayout.Button("Aplicar Iniciais")) ApplyInitial();
             if (GUILayout.Button("Limpar Prefs")) ClearSavedPrefs();
             GUILayout.EndHorizontal();
 
-            // Manual width override controls
             GUILayout.Space(6);
             useManualWidth = GUILayout.Toggle(useManualWidth, "Usar largura manual (cm)");
             GUILayout.BeginHorizontal();
