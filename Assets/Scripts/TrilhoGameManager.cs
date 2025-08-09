@@ -1,35 +1,10 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 using OscJack;
 
 namespace Trilho
 {
-    [System.Serializable]
-    public class ActivationZone
-    {
-        [Header("Zona (interno – legado)")]
-        [Tooltip("Nome da zona (uso interno)")]
-        public string zoneName = "New Zone";
-        [Tooltip("Início da zona em cm (uso interno)")]
-        public float startPositionCm = 0f;
-        [Tooltip("Fim da zona em cm (uso interno)")]
-        public float endPositionCm = 100f;
-        
-        [Header("Conteúdo (interno – legado)")]
-        public GameObject contentToActivate;
-        public float fadeInDuration = 0.5f;
-        public float fadeOutDuration = 0.5f;
-        
-        [Header("Debug")]
-        public bool isActive = false;
-    }
-
-    public enum TrilhoState
-    {
-        Background,
-        InZone
-    }
+    // Zonas internas foram removidas. Ativação é responsabilidade do TrilhoZoneActivator.
 
     public class TrilhoGameManager : MonoBehaviour
     {
@@ -62,12 +37,6 @@ namespace Trilho
         [Tooltip("Largura atual da TV em centímetros. Vem do TVBorderConfigurator.")]
         [SerializeField] private float screenWidthInCm = 60f;
 
-        [Header("Zonas Internas (legado)")]
-        [Tooltip("Lista de zonas usada apenas se 'Habilitar Zonas Internas' estiver ligada")]
-        [SerializeField, HideInInspector] private List<ActivationZone> activationZones = new List<ActivationZone>();
-        [Tooltip("Habilitar o sistema interno de zonas (legado). Mantenha DESLIGADO quando usar o TrilhoZoneActivator.")]
-        [SerializeField] private bool enableInternalZones = false;
-        
         [Header("Depuração / Simulação")]
         [Tooltip("Mostrar logs detalhados no Console")]
         [SerializeField] private bool showDebugInfo = true;
@@ -81,9 +50,7 @@ namespace Trilho
         // Private
         private float currentPositionCm = 0f;
         private float currentUnityPosition = 0f;
-        private TrilhoState currentState = TrilhoState.Background;
-        private ActivationZone currentActiveZone = null;
-        private Coroutine fadeCoroutine;
+        // Estado/Zonas internos removidos
 
         #region Ciclo de Vida Unity
 
@@ -118,8 +85,6 @@ namespace Trilho
             
             // Atualiza posição e câmera
             UpdatePosition();
-            if (enableInternalZones)
-                UpdateZones();
             UpdateCameraPosition();
         }
 
@@ -233,140 +198,12 @@ namespace Trilho
 
         #endregion
 
-        #region Zonas internas (legado)
-
-        private void UpdateZones()
-        {
-            if (!enableInternalZones) return;
-            float visibleStartCm = currentPositionCm - (screenWidthInCm / 2f);
-            float visibleEndCm = currentPositionCm + (screenWidthInCm / 2f);
-            if (showDebugInfo)
-                Debug.Log($"[TRILHO] Área visível: {visibleStartCm:F1}cm - {visibleEndCm:F1}cm (câmera: {currentPositionCm:F1}cm)");
-
-            ActivationZone newActiveZone = null;
-            foreach (var zone in activationZones)
-            {
-                bool zoneVisible = (zone.startPositionCm <= visibleEndCm && zone.endPositionCm >= visibleStartCm);
-                if (zoneVisible)
-                {
-                    newActiveZone = zone;
-                    break;
-                }
-            }
-
-            if (newActiveZone != currentActiveZone)
-            {
-                if (currentActiveZone != null)
-                {
-                    ExitZone(currentActiveZone);
-                }
-                if (newActiveZone != null)
-                {
-                    EnterZone(newActiveZone);
-                }
-                else
-                {
-                    ReturnToBackground();
-                }
-            }
-        }
-
-        private void EnterZone(ActivationZone zone)
-        {
-            if (zone.contentToActivate == null) return;
-            zone.contentToActivate.SetActive(true);
-            var canvasGroup = zone.contentToActivate.GetComponent<CanvasGroup>();
-            if (canvasGroup != null)
-            {
-                canvasGroup.alpha = 0f;
-                StartCoroutine(FadeCanvasGroup(canvasGroup, 1f, zone.fadeInDuration));
-            }
-            var videoPlayer = zone.contentToActivate.GetComponent<UnityEngine.Video.VideoPlayer>();
-            if (videoPlayer != null)
-            {
-                if (!videoPlayer.isPrepared) videoPlayer.Prepare();
-                videoPlayer.Play();
-            }
-            zone.isActive = true;
-            currentActiveZone = zone;
-        }
-
-        private void ExitZone(ActivationZone zone)
-        {
-            if (zone.contentToActivate == null) return;
-            var videoPlayer = zone.contentToActivate.GetComponent<UnityEngine.Video.VideoPlayer>();
-            if (videoPlayer != null) videoPlayer.Stop();
-            var canvasGroup = zone.contentToActivate.GetComponent<CanvasGroup>();
-            if (canvasGroup != null)
-            {
-                StartCoroutine(FadeCanvasGroup(canvasGroup, 1f, 0f, zone.fadeOutDuration, () => { zone.contentToActivate.SetActive(false); }));
-            }
-            else
-            {
-                zone.contentToActivate.SetActive(false);
-            }
-            zone.isActive = false;
-            currentActiveZone = null;
-        }
-
-        private void ReturnToBackground() {}
-
-        #endregion
-
-        #region Transições (utilitário)
-
-        private IEnumerator FadeCanvasGroup(CanvasGroup canvasGroup, float startAlpha, float targetAlpha, float duration)
-        {
-            if (canvasGroup == null) yield break;
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-                canvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
-                yield return null;
-            }
-            canvasGroup.alpha = targetAlpha;
-        }
-
-        private IEnumerator FadeCanvasGroup(CanvasGroup canvasGroup, float targetAlpha, float duration)
-        {
-            if (canvasGroup == null) yield break;
-            float startAlpha = canvasGroup.alpha;
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-                canvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
-                yield return null;
-            }
-            canvasGroup.alpha = targetAlpha;
-        }
-
-        private IEnumerator FadeCanvasGroup(CanvasGroup canvasGroup, float startAlpha, float targetAlpha, float duration, System.Action onComplete)
-        {
-            if (canvasGroup == null) yield break;
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-                canvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
-                yield return null;
-            }
-            canvasGroup.alpha = targetAlpha;
-            onComplete?.Invoke();
-        }
-
-        #endregion
+        // Zonas internas e transições foram removidas; ativação é feita pelo TrilhoZoneActivator.
 
         #region API Pública
 
         public float GetCurrentPositionCm() => currentPositionCm;
         public float GetCurrentUnityPosition() => currentUnityPosition;
-        public TrilhoState GetCurrentState() => currentState;
-        public ActivationZone GetCurrentZone() => currentActiveZone;
         
         public float GetScreenWidthCm() => screenWidthInCm;
         public void SetScreenWidthCm(float widthCm)
@@ -387,8 +224,7 @@ namespace Trilho
         public Transform GetCameraTransform() => cameraTransform;
         public void SetCameraTransform(Transform camera) => cameraTransform = camera;
         
-        public List<ActivationZone> GetActivationZones() => activationZones;
-        public void SetEnableInternalZones(bool enabled) { enableInternalZones = enabled; }
+        // Sistema interno de zonas removido
         
         public void SimulatePosition(float positionCm)
         {
@@ -399,22 +235,6 @@ namespace Trilho
         public void StopSimulation()
         {
             simulatePosition = false;
-        }
-
-        public void AddZone(ActivationZone zone)
-        {
-            if (zone != null && !activationZones.Contains(zone))
-            {
-                activationZones.Add(zone);
-            }
-        }
-
-        public void RemoveZone(ActivationZone zone)
-        {
-            if (zone != null && activationZones.Contains(zone))
-            {
-                activationZones.Remove(zone);
-            }
         }
 
         #endregion
