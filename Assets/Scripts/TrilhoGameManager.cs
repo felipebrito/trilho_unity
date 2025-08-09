@@ -13,6 +13,8 @@ namespace Trilho
         [SerializeField] private OscConnection oscConnection;
         [Tooltip("Endereço OSC ouvido (ex.: /unity)")]
         [SerializeField] private string oscAddress = "/unity";
+        [Tooltip("Quando marcado, interpreta valores OSC como normalizados (0..1), onde 0 = início e 1 = fim do trilho.")]
+        [SerializeField] private bool oscValorNormalizado01 = true;
         private OscServer oscServer;
 
         [Header("Mapeamento de Posição")]
@@ -141,12 +143,25 @@ namespace Trilho
             }
         }
 
-        private void UpdatePositionFromOsc(float positionCm)
+        private void UpdatePositionFromOsc(float value)
         {
-            currentPositionCm = Mathf.Clamp(positionCm, physicalMinCm, physicalMaxCm);
-            currentUnityPosition = MapPositionToUnity(currentPositionCm);
-            if (showDebugInfo)
-                Debug.Log($"[TRILHO] Posição OSC: {currentPositionCm:F1}cm -> {currentUnityPosition:F2} Unity");
+            if (oscValorNormalizado01)
+            {
+                float t = Mathf.Clamp01(value);
+                // Mapear normalizado para cm e Unity
+                currentPositionCm = Mathf.Lerp(physicalMinCm, physicalMaxCm, t);
+                currentUnityPosition = Mathf.Lerp(unityMinPosition, unityMaxPosition, t);
+                if (showDebugInfo)
+                    Debug.Log($"[TRILHO][OSC 0-1] t={t:F3} -> {currentPositionCm:F1}cm | Unity {currentUnityPosition:F1}");
+            }
+            else
+            {
+                float positionCm = value;
+                currentPositionCm = Mathf.Clamp(positionCm, physicalMinCm, physicalMaxCm);
+                currentUnityPosition = MapPositionToUnity(currentPositionCm);
+                if (showDebugInfo)
+                    Debug.Log($"[TRILHO][OSC cm] {currentPositionCm:F1}cm -> Unity {currentUnityPosition:F1}");
+            }
         }
 
         #endregion
