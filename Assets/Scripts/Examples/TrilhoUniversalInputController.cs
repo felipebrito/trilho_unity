@@ -226,19 +226,11 @@ namespace Trilho.Examples
             
             float currentPos = trilhoManager.GetCurrentPositionCm();
             float unityPos = trilhoManager.GetCurrentUnityPosition();
-            TrilhoState state = trilhoManager.GetCurrentState();
-            ActivationZone currentZone = trilhoManager.GetCurrentZone();
             
             string inputType = useInputSystem ? "Input System" : "Legacy Input";
             Debug.Log($"=== TRILHO INFO ({inputType}) ===");
-            Debug.Log($"Position: {currentPos:F1}cm");
-            Debug.Log($"Unity Position: {unityPos:F3}");
-            Debug.Log($"State: {state}");
-            Debug.Log($"Current Zone: {(currentZone?.zoneName ?? "None")}");
-            if (currentZone != null)
-            {
-                Debug.Log($"Zone Range: {currentZone.startPositionCm}cm - {currentZone.endPositionCm}cm");
-            }
+            Debug.Log($"Posição: {currentPos:F1}cm");
+            Debug.Log($"Unity X: {unityPos:F3}");
             Debug.Log("===============================");
         }
         

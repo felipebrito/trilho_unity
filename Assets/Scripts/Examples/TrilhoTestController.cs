@@ -211,18 +211,15 @@ namespace Trilho.Examples
             
             float currentPos = trilhoManager.GetCurrentPositionCm();
             float unityPos = trilhoManager.GetCurrentUnityPosition();
-            TrilhoState state = trilhoManager.GetCurrentState();
-            ActivationZone currentZone = trilhoManager.GetCurrentZone();
             
             if (positionText != null)
             {
-                positionText.text = $"Position: {currentPos:F1}cm\nUnity: {unityPos:F3}\nState: {state}";
+                positionText.text = $"Posição: {currentPos:F1}cm\nUnity: {unityPos:F3}";
             }
             
             if (statusText != null)
             {
-                string zoneInfo = currentZone != null ? currentZone.zoneName : "None";
-                statusText.text = $"Current Zone: {zoneInfo}";
+                statusText.text = "Zona atual: (gerenciada pelo TrilhoZoneActivator)";
             }
             
             if (positionSlider != null && !isAutoTesting)
@@ -316,10 +313,7 @@ namespace Trilho.Examples
             GUILayout.Space(5);
             
             GUILayout.Label($"Position: {trilhoManager.GetCurrentPositionCm():F1}cm");
-            GUILayout.Label($"State: {trilhoManager.GetCurrentState()}");
             
-            var currentZone = trilhoManager.GetCurrentZone();
-            GUILayout.Label($"Zone: {(currentZone?.zoneName ?? "None")}");
             
             GUILayout.Space(10);
             
