@@ -18,12 +18,16 @@ class TrilhoConfigurator {
                 // this.loadStoredConfig();
                 this.updateLastModified();
                 this.showSection('general');
+                // Atualizar minimapa após DOM estar pronto
+                setTimeout(() => this.updateTrilhoMinimap(), 1000);
             });
         } else {
             // Não carregar automaticamente do localStorage
             // this.loadStoredConfig();
             this.updateLastModified();
             this.showSection('general');
+            // Atualizar minimapa após DOM estar pronto
+            setTimeout(() => this.updateTrilhoMinimap(), 1000);
         }
         
         console.log('TrilhoConfigurator inicializado com sucesso');
@@ -408,6 +412,7 @@ class TrilhoConfigurator {
 
         this.zones.push(newZone);
         this.renderZone(newZone, this.zones.length - 1);
+        this.updateTrilhoMinimap();
         this.updateLastModified();
         console.log('Nova zona adicionada:', newZone);
     }
@@ -889,6 +894,8 @@ class TrilhoConfigurator {
             
             zonesContainer.appendChild(marker);
             console.log(`Bullet criado e adicionado para zona: ${zone.name}`);
+            console.log(`Marker adicionado ao DOM:`, marker);
+            console.log(`Container trilho-zones agora tem ${zonesContainer.children.length} filhos`);
         });
         
         console.log(`${this.zones.length} bullets criados no minimapa`);
@@ -1748,7 +1755,8 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
             this.zones.forEach((zone, index) => this.renderZone(zone, index));
         }
         
-        // O minimapa será atualizado quando a seção zones for ativada
+        // Atualizar o minimapa sempre que as zonas forem renderizadas
+        this.updateTrilhoMinimap();
     }
 
     initializeResetButtons() {
