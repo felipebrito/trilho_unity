@@ -1,123 +1,242 @@
-# Trilho - Sistema de Configuração Interativa
+# Trilho - Sistema de Trilhos Digitais Interativos
 
-Sistema de configuração interativa para trilhos digitais com suporte a múltiplos tipos de conteúdo (imagens, vídeos, texto e aplicações).
+Sistema completo para criação de trilhos digitais interativos que respondem ao movimento físico de um dispositivo móvel. Integra hardware de medição (encoder) com software de configuração e Unity para experiências imersivas.
 
-## 🚀 Funcionalidades
+## 🎯 O que é o Trilho?
 
-- **Configuração Visual**: Interface web intuitiva para configurar trilhos
-- **Múltiplos Tipos de Conteúdo**: Suporte a imagens, vídeos, texto e aplicações
-- **Configuração de Câmera**: Ajustes de posição, tamanho e parâmetros da câmera
-- **Sistema OSC**: Configuração de comunicação OSC
-- **Background Configurável**: Posicionamento e dimensionamento de fundos
-- **Zonas de Conteúdo**: Criação e gerenciamento de zonas com posicionamento preciso
-- **Exportação Unity**: Geração de pacotes completos para Unity
-- **Interface Responsiva**: Funciona em desktop e dispositivos móveis
+O Trilho é um sistema que permite criar **experiências interativas baseadas em movimento físico**. Imagine uma exposição onde o visitante empurra uma TV ou dispositivo móvel ao longo de um trilho, e o conteúdo muda automaticamente conforme a posição.
 
-## 🛠️ Tecnologias
+### Como Funciona na Prática:
+1. **Hardware** ([trilhoencoder](https://github.com/felipebrito/trilhoencoder)) mede a posição em tempo real
+2. **Configurador Web** permite criar e configurar as experiências
+3. **Unity** executa a experiência e responde ao movimento físico
 
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Backend**: Unity (C#)
-- **Formato de Dados**: JSON
-- **Comunicação**: OSC (Open Sound Control)
+## 🔧 Componentes do Sistema
 
-## 📁 Estrutura do Projeto
+### 1. Hardware - TrilhoEncoder
+- **ESP32** com encoder rotativo
+- **Medição precisa**: 1 rotação = 20cm, 4000 pulsos por rotação
+- **WiFi AP**: Cria rede própria para comunicação
+- **Transmissão UDP**: Envia posição em tempo real para Unity
+- **Interface Web**: Monitoramento e configuração do hardware
 
+**Repositório**: [felipebrito/trilhoencoder](https://github.com/felipebrito/trilhoencoder)
+
+### 2. Configurador Web
+- **Interface intuitiva** para configurar experiências
+- **Definição de zonas** com posicionamento preciso em centímetros
+- **Múltiplos tipos de conteúdo**: imagens, vídeos, texto, aplicações
+- **Visualização em tempo real** do trilho e zonas
+- **Exportação** para Unity
+
+### 3. Unity (Runtime)
+- **Carregamento automático** da configuração
+- **Resposta em tempo real** ao movimento físico
+- **Ativação de zonas** conforme posição do dispositivo
+- **Transições suaves** entre conteúdos
+
+## 🚀 Fluxo de Trabalho Completo
+
+### Passo 1: Configurar o Hardware
+1. **Conecte o ESP32** ao encoder rotativo
+2. **Carregue o código** do [trilhoencoder](https://github.com/felipebrito/trilhoencoder)
+3. **Conecte-se** à rede WiFi "EncoderESP32" (senha: 12345678)
+4. **Verifique** a transmissão UDP na porta 8888
+
+### Passo 2: Criar a Experiência
+1. **Abra o configurador**: `Assets/StreamingAssets/trilho-configurator.html`
+2. **Configure o trilho**:
+   - Dimensões físicas (cm) e da tela (px)
+   - Posição da câmera Unity
+   - Parâmetros OSC para comunicação
+3. **Crie zonas de conteúdo**:
+   - **Posição (cm)**: Onde no trilho a zona começa
+   - **Tipo**: Imagem, Vídeo, Texto ou Aplicação
+   - **Conteúdo**: Arquivo específico ou texto
+   - **Dimensões**: Largura e altura da zona
+
+### Passo 3: Testar no Unity
+1. **Abra o projeto** no Unity
+2. **Execute a cena** (ex: `Trilho-Configurable.unity`)
+3. **O sistema automaticamente**:
+   - Carrega a configuração do JSON
+   - Configura a câmera e posições
+   - Cria as zonas de conteúdo
+   - Conecta ao hardware via UDP
+
+### Passo 4: Experiência Interativa
+- **Mova o dispositivo** ao longo do trilho físico
+- **O hardware detecta** a posição e envia via UDP
+- **Unity recebe** a posição e ativa as zonas correspondentes
+- **Conteúdo muda** automaticamente conforme movimento
+
+## 📋 Configuração Detalhada
+
+### Trilho (Dimensões Físicas)
+```json
+{
+  "trilho": {
+    "widthPx": 1920,        // Largura da tela em pixels
+    "heightPx": 1080,       // Altura da tela em pixels
+    "widthCm": 600,         // Largura física do trilho em cm
+    "heightCm": 108         // Altura física em cm
+  }
+}
 ```
-Trilho/
-├── Assets/
-│   ├── Scripts/           # Scripts Unity (C#)
-│   ├── Scenes/           # Cenas Unity
-│   ├── StreamingAssets/  # Configurador Web
-│   │   ├── trilho-configurator.html
-│   │   ├── trilho-configurator.js
-│   │   ├── trilho-configurator-clean.css
-│   │   └── trilho_config.json
-│   └── Settings/         # Configurações Unity
-├── ProjectSettings/       # Configurações do projeto
-└── README.md
+
+### Câmera Unity
+```json
+{
+  "camera": {
+    "positionX": 0,         // Posição X da câmera
+    "positionY": 0,         // Posição Y da câmera
+    "positionZ": -10,       // Posição Z da câmera
+    "size": 5.4             // Tamanho da câmera ortográfica
+  }
+}
 ```
 
-## 🚀 Como Usar
+### Zonas de Conteúdo
+```json
+{
+  "contentZones": [
+    {
+      "id": 1,
+      "name": "Entrada Principal",
+      "type": "TEXT",
+      "positionCm": 50,     // Começa aos 50cm do trilho
+      "widthCm": 100,       // Zona tem 100cm de largura
+      "heightCm": 80,       // Zona tem 80cm de altura
+      "content": "Bem-vindo ao Trilho!",
+      "fontSize": 58,
+      "textColor": "#FFFFFF"
+    }
+  ]
+}
+```
 
-### 1. Configurador Web
-1. Abra `Assets/StreamingAssets/trilho-configurator.html` em um navegador
-2. Configure os parâmetros do trilho, câmera, OSC e background
-3. Crie e configure zonas de conteúdo
-4. Salve a configuração localmente ou exporte para Unity
+## 🔌 Comunicação Hardware-Software
 
-### 2. Unity
-1. Abra o projeto no Unity
-2. Execute a cena desejada
-3. O sistema carregará automaticamente a configuração do JSON
+### Protocolo UDP
+- **IP**: 192.168.4.255 (broadcast) ou IP específico
+- **Porta**: 8888
+- **Formato**: JSON
+- **Frequência**: 100ms
 
-## 📋 Configuração
+### Dados Transmitidos
+```json
+{
+  "encoder": {
+    "pulses": 1234,         // Pulsos do encoder
+    "distance": 6.17,       // Distância em cm
+    "timestamp": 12345      // Timestamp
+  }
+}
+```
 
-### Trilho
-- **Largura (px)**: Largura da tela em pixels
-- **Altura (px)**: Altura da tela em pixels
-- **Largura (cm)**: Largura física em centímetros
-- **Altura (cm)**: Altura física em centímetros
+### Unity Recebe e Processa
+1. **UDP Listener** captura dados do hardware
+2. **Conversão** de pulsos para posição em cm
+3. **Mapeamento** para posição Unity
+4. **Ativação** das zonas correspondentes
 
-### Câmera
-- **Posição X, Y, Z**: Posição da câmera no espaço 3D
-- **Tamanho**: Tamanho da câmera ortográfica
+## 🎮 Controles e Teste
 
-### OSC
-- **Host**: Endereço IP do servidor OSC
-- **Porta**: Porta de comunicação OSC
+### Simulação (Sem Hardware)
+- **Teclas setas**: Movem a câmera virtualmente
+- **Teclas 0-5**: Saltos rápidos para posições específicas
+- **Overlay visual**: Mostra zonas e posição atual
 
-### Background
-- **Posição X, Y, Z**: Posição do fundo
-- **Largura, Altura**: Dimensões do fundo
+### Hardware Real
+- **Movimento físico**: Empurre o dispositivo ao longo do trilho
+- **Feedback visual**: Conteúdo muda em tempo real
+- **Precisão**: Resolução de 0.05mm (4000 pulsos/rotação)
 
-### Zonas
-- **Tipo**: Imagem, Vídeo, Texto ou Aplicação
-- **Posição (cm)**: Posição no trilho em centímetros
-- **Largura, Altura**: Dimensões da zona
-- **Conteúdo**: Arquivo ou texto específico
+## 🛠️ Desenvolvimento e Customização
 
-## 💾 Salvamento e Exportação
+### Scripts Unity Principais
+- **`TrilhoConfigLoader.cs`**: Carrega configuração JSON e cria objetos
+- **`TrilhoGameManager.cs`**: Gerencia posição, câmera e mapeamento cm↔Unity
+- **`TrilhoSceneSetup.cs`**: Configuração automática da cena
+- **`TrilhoZoneActivator.cs`**: Ativação de zonas baseada em posição
 
-- **Salvar**: Salva configuração no localStorage do navegador
-- **Salvar JSON**: Download do arquivo de configuração
-- **Exportar Unity**: Gera pacote ZIP com JSON e arquivos de mídia
+### Configurador Web
+- **`trilho-configurator.js`**: Lógica principal e gerenciamento de dados
+- **`trilho-configurator-clean.css`**: Estilos e tema visual
+- **`trilho-configurator.html`**: Interface e estrutura
 
-## 🔧 Desenvolvimento
+### Estrutura de Arquivos
+```
+Assets/
+├── Scripts/
+│   ├── TrilhoConfigLoader.cs      # Carregamento de configuração
+│   ├── TrilhoGameManager.cs       # Gerenciamento principal
+│   ├── TrilhoSceneSetup.cs        # Setup automático
+│   └── TrilhoZoneActivator.cs     # Ativação de zonas
+├── StreamingAssets/
+│   ├── trilho-configurator.html   # Interface web
+│   ├── trilho-configurator.js     # Lógica JavaScript
+│   ├── trilho-configurator-clean.css # Estilos
+│   └── trilho_config.json        # Configuração padrão
+└── Scenes/
+    └── Trilho-Configurable.unity  # Cena principal
+```
 
-### Estrutura dos Scripts Unity
-- `TrilhoConfigLoader.cs`: Carrega e aplica configurações
-- `TrilhoGameManager.cs`: Gerencia o sistema principal
-- `TrilhoSceneSetup.cs`: Configuração automática da cena
-- `TrilhoZoneActivator.cs`: Ativação de zonas de conteúdo
+## 🚨 Troubleshooting
 
-### Personalização
-- Modifique `trilho-configurator-clean.css` para alterar o visual
-- Edite `trilho-configurator.js` para funcionalidades customizadas
-- Ajuste `trilho_config.json` para configurações padrão
+### Hardware Não Responde
+1. **Verifique WiFi**: Conecte-se à rede "EncoderESP32"
+2. **Teste UDP**: Use `examples/udp_receiver_example.py`
+3. **Firewall**: Desabilite temporariamente no Windows
+4. **IP específico**: Configure `udpTargetIP` no código
 
-## 📱 Compatibilidade
+### Unity Não Carrega Configuração
+1. **Verifique JSON**: Valide sintaxe em `trilho_config.json`
+2. **Caminho StreamingAssets**: Certifique-se que está correto
+3. **Console Unity**: Verifique erros de carregamento
+4. **Scripts**: Confirme que todos estão anexados aos GameObjects
 
-- **Navegadores**: Chrome, Firefox, Safari, Edge (versões modernas)
-- **Unity**: 2021.3 LTS ou superior
-- **Dispositivos**: Desktop, tablet e mobile
+### Zonas Não Ativam
+1. **Posição da câmera**: Verifique se está alinhada com o trilho
+2. **Dimensões**: Confirme largura/altura em cm
+3. **Overlay**: Ative `drawGameOverlay` para debug visual
+4. **Mapeamento**: Verifique conversão cm↔Unity
+
+## 📱 Casos de Uso
+
+### Exposições Interativas
+- **Museus**: Conteúdo muda conforme movimento
+- **Feiras**: Informações específicas por posição
+- **Showrooms**: Produtos diferentes em cada zona
+
+### Educação
+- **Timeline histórica**: Eventos em ordem cronológica
+- **Anatomia**: Partes do corpo em diferentes posições
+- **Geografia**: Países/regiões ao longo do trilho
+
+### Entretenimento
+- **Jogos**: Níveis diferentes por posição
+- **Narrativas**: Histórias que se desenrolam com movimento
+- **Experiências imersivas**: Realidade aumentada física
 
 ## 🤝 Contribuição
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+1. **Fork** o projeto
+2. **Crie uma branch** para sua feature
+3. **Desenvolva** e teste
+4. **Abra um Pull Request**
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+MIT License - veja [LICENSE](LICENSE) para detalhes.
 
-## 📞 Suporte
+## 🔗 Links Relacionados
 
-Para suporte técnico ou dúvidas, abra uma issue no GitHub.
+- **Hardware**: [trilhoencoder](https://github.com/felipebrito/trilhoencoder) - ESP32 com encoder
+- **Documentação**: [TRILHO_JSON_SETUP_GUIDE.md](Assets/TRILHO_JSON_SETUP_GUIDE.md)
+- **Guia Rápido**: [README_QUICK_START.md](Assets/README_QUICK_START.md)
 
 ---
 
-**Desenvolvido com ❤️ para a comunidade de mídia interativa**
+**Desenvolvido para criar experiências interativas que conectam o mundo físico ao digital** 🚀
 
