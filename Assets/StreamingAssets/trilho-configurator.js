@@ -139,6 +139,9 @@ class TrilhoConfigurator {
         // Modal
         this.initializeModal();
         
+        // Mobile menu functionality
+        this.initializeMobileMenu();
+        
         console.log('Event listeners inicializados com sucesso');
     }
 
@@ -993,6 +996,49 @@ class TrilhoConfigurator {
                     this.config.background.imageFile = file.name;
                     document.getElementById('background-image-file').value = file.name;
                     this.updateLastModified();
+                }
+            });
+        }
+    }
+
+    initializeMobileMenu() {
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        
+        if (mobileMenuToggle && sidebar && sidebarOverlay) {
+            // Toggle sidebar
+            mobileMenuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            });
+            
+            // Fechar sidebar ao clicar no overlay
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+            
+            // Fechar sidebar ao clicar em um item do menu
+            const navItems = sidebar.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                        sidebarOverlay.classList.remove('active');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+            
+            // Fechar sidebar ao redimensionar a tela
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
                 }
             });
         }

@@ -1,0 +1,91 @@
+# GitHub Discussions configuration for Trilho repository
+
+# Enable discussions
+discussions:
+  # Categories for discussions
+  categories:
+    - name: "General"
+      description: "General discussions about Trilho"
+      emoji: "💬"
+      
+    - name: "Help & Support"
+      description: "Get help with Trilho setup and usage"
+      emoji: "❓"
+      
+    - name: "Showcase"
+      description: "Share your Trilho projects and experiences"
+      emoji: "🎨"
+      
+    - name: "Ideas & Feedback"
+      description: "Share ideas and provide feedback"
+      emoji: "💡"
+      
+    - name: "Development"
+      description: "Technical discussions for developers"
+      emoji: "⚙️"
+      
+    - name: "Hardware"
+      description: "Discussions about ESP32, encoders, and hardware setup"
+      emoji: "🔧"
+      
+    - name: "Unity"
+      description: "Unity-specific discussions and tips"
+      emoji: "🎮"
+      
+    - name: "Web Configurator"
+      description: "Discussions about the web-based configuration tool"
+      emoji: "🌐"
+
+# Discussion templates
+templates:
+  - name: "Help Request"
+    title: "[HELP] "
+    body: |
+      ## 🆘 Help Needed
+      
+      **Describe your problem:**
+      
+      **What you've tried:**
+      
+      **Environment:**
+      - OS: [e.g., Windows 10, macOS, Ubuntu]
+      - Unity Version: [e.g., 2021.3 LTS]
+      - Hardware: [e.g., ESP32, encoder type]
+      
+      **Screenshots/Logs:**
+      
+      **Additional context:**
+      
+  - name: "Project Showcase"
+    title: "[SHOWCASE] "
+    body: |
+      ## 🎨 Project Showcase
+      
+      **Project Name:**
+      
+      **Description:**
+      
+      **What you built:**
+      
+      **Technologies used:**
+      
+      **Challenges overcome:**
+      
+      **Screenshots/Videos:**
+      
+      **Links:**
+      
+  - name: "Feature Idea"
+    title: "[IDEA] "
+    body: |
+      ## 💡 Feature Idea
+      
+      **What is your idea?**
+      
+      **Why is this useful?**
+      
+      **How would it work?**
+      
+      **Alternative solutions:**
+      
+      **Additional context:**
