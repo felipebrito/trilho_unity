@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trilho Configurador</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="trilho-configurator-clean.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+                <header class="app-header">
+            <div class="header-content">
+                <div class="header-logo">
+                    <img src="./logo aparato.png" alt="Logo Aparato" class="logo-image">
+                </div>
+                <div class="header-actions">
+                    <div class="action-group">
+                        <button id="load-btn" class="btn btn-secondary">
+                            <i class="fas fa-upload"></i>
+                            Carregar
+                        </button>
+                        <button id="save-btn" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Salvar
+                        </button>
+                    </div>
+                    <div class="action-divider"></div>
+                    <div class="action-group">
+                        <button id="clear-storage-btn" class="btn btn-warning">
+                            <i class="fas fa-trash"></i>
+                            Limpar
+                        </button>
+                    </div>
+                    <div class="action-divider"></div>
+                    <div class="action-group">
+                        <button id="export-btn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i>
+                            Salvar Json
+                        </button>
+                        <button id="save-to-unity-btn" class="btn btn-success">
+                            <i class="fas fa-gamepad"></i>
+                            Exportar Unity
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav>
+                <ul class="nav-list">
+                    <li>
+                        <button class="nav-item active" data-section="general">
+                            <i class="fas fa-cog"></i>
+                            <span>Geral</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="trilho">
+                            <i class="fas fa-route"></i>
+                            <span>Trilho</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="camera">
+                            <i class="fas fa-video"></i>
+                            <span>Câmera</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="osc">
+                            <i class="fas fa-broadcast-tower"></i>
+                            <span>OSC</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="background">
+                            <i class="fas fa-image"></i>
+                            <span>Background</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="zones">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Zonas</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="app-content">
+            <!-- General Section -->
+            <section id="general-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Configurações Gerais</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-sm btn-secondary reset-section-btn" id="reset-general" data-section="general">
+                            <i class="fas fa-undo"></i>
+                            Resetar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Informações do Projeto</h3>
+                    <div class="form-group">
+                        <label class="form-label">Nome do Projeto</label>
+                        <input type="text" id="project-name" class="form-input" placeholder="Digite o nome do projeto">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Descrição</label>
+                        <textarea id="project-description" class="form-textarea" placeholder="Descrição do projeto"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Versão</label>
+                        <input type="text" id="project-version" class="form-input" placeholder="1.0">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Trilho Section -->
+            <section id="trilho-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Configuração do Trilho</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-sm btn-secondary reset-section-btn" id="reset-trilho" data-section="trilho">
+                            <i class="fas fa-undo"></i>
+                            Resetar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Mapeamento de Posição</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Posição Física Mínima (cm)</label>
+                            <div class="slider-container">
+                                <input type="range" id="physical-min-cm-slider" class="form-slider" min="0" max="1000" step="1" value="0">
+                                <input type="number" id="physical-min-cm" class="form-input" placeholder="0" step="0.1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Posição Física Máxima (cm)</label>
+                            <div class="slider-container">
+                                <input type="range" id="physical-max-cm-slider" class="form-slider" min="0" max="1000" step="1" value="600">
+                                <input type="number" id="physical-max-cm" class="form-input" placeholder="600" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Posição Unity Mínima</label>
+                            <div class="slider-container">
+                                <input type="range" id="unity-min-position-slider" class="form-slider" min="0" max="10000" step="10" value="0">
+                                <input type="number" id="unity-min-position" class="form-input" placeholder="0" step="0.1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Posição Unity Máxima</label>
+                            <div class="slider-container">
+                                <input type="range" id="unity-max-position-slider" class="form-slider" min="0" max="10000" step="10" value="8520">
+                                <input type="number" id="unity-max-position" class="form-input" placeholder="8520" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Largura da TV (cm)</label>
+                            <div class="slider-container">
+                                <input type="range" id="screen-width-cm-slider" class="form-slider" min="20" max="200" step="1" value="60">
+                                <input type="number" id="screen-width-cm" class="form-input" placeholder="60" step="0.1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sensibilidade de Movimento</label>
+                            <div class="slider-container">
+                                <input type="range" id="movement-sensitivity-slider" class="form-slider" min="0.1" max="2.0" step="0.1" value="0.5">
+                                <input type="number" id="movement-sensitivity" class="form-input" placeholder="0.5" step="0.1" min="0.1" max="2.0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Camera Section -->
+            <section id="camera-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Configurações da Câmera</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-sm btn-secondary reset-section-btn" id="reset-camera" data-section="camera">
+                            <i class="fas fa-undo"></i>
+                            Resetar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Movimento da Câmera</h3>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="smooth-camera-movement" class="form-checkbox">
+                            Movimento Suave da Câmera
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Suavização da Câmera</label>
+                        <div class="slider-container">
+                            <input type="range" id="camera-smoothing-slider" class="form-slider" min="1" max="20" step="0.1" value="5">
+                            <input type="number" id="camera-smoothing" class="form-input" placeholder="5" step="0.1" min="1" max="20">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- OSC Section -->
+            <section id="osc-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Configuração OSC</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-sm btn-secondary reset-section-btn" id="reset-osc" data-section="osc">
+                            <i class="fas fa-undo"></i>
+                            Resetar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Comunicação OSC</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Endereço OSC</label>
+                            <input type="text" id="osc-address" class="form-input" placeholder="/unity">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Porta OSC</label>
+                            <input type="number" id="osc-port" class="form-input" placeholder="9000" min="1024" max="65535">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="osc-valor-normalizado" class="form-checkbox">
+                            Valor OSC Normalizado (0..1)
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Background Section -->
+            <section id="background-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Configuração de Background</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-sm btn-secondary reset-section-btn" id="reset-background" data-section="background">
+                            <i class="fas fa-undo"></i>
+                            Resetar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Upload de Imagem de Background</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="background-enabled" class="form-checkbox">
+                            Background Ativo
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Arquivo de Imagem</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="background-image-upload" class="file-upload" accept="image/*">
+                            <div class="file-info">
+                                <span id="background-file-name">Nenhum arquivo selecionado</span>
+                                <button type="button" id="background-remove-file" class="btn btn-sm btn-danger" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-help">Selecione uma imagem para fazer upload. O arquivo será salvo em StreamingAssets/Images/</small>
+                    </div>
+                    
+                    <!-- Preview do Background -->
+                    <div class="background-preview-container" style="display: none;">
+                        <h4>Preview do Background</h4>
+                        <div class="background-preview">
+                            <img id="background-preview-image" alt="Preview do Background" class="background-preview-img">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Zones Section -->
+            <section id="zones-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Gerenciamento de Zonas</h2>
+                    <div class="section-actions">
+                        <button id="add-zone-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Adicionar Zona
+                        </button>
+                        <button class="btn btn-sm btn-secondary reset-section-btn" id="reset-zones" data-section="zones">
+                            <i class="fas fa-undo"></i>
+                            Resetar
+                        </button>
+                        <button class="btn btn-sm btn-info" id="test-sticky-btn" title="Testar Sticky">
+                            <i class="fas fa-magnet"></i>
+                            Teste
+                        </button>
+
+                    </div>
+                </div>
+                
+                <!-- Mini Mapa do Trilho -->
+                <div class="trilho-minimap-container">
+                    <h3>Visualização do Trilho</h3>
+                    <div class="trilho-minimap" id="trilho-minimap">
+                        <div class="trilho-track">
+                            <div class="trilho-start">0cm</div>
+                            <div class="trilho-end" id="trilho-end-label">600cm</div>
+                            <div class="trilho-zones" id="trilho-zones">
+                                <!-- Zonas serão posicionadas aqui dinamicamente -->
+                            </div>
+                        </div>
+                        <div class="trilho-scale">
+                            <div class="scale-marker" style="left: 0%">0cm</div>
+                            <div class="scale-marker" style="left: 25%">150cm</div>
+                            <div class="scale-marker" style="left: 50%">300cm</div>
+                            <div class="scale-marker" style="left: 75%">450cm</div>
+                            <div class="scale-marker" style="left: 100%">600cm</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="zones-container" class="zones-container">
+                    <!-- Zonas serão adicionadas aqui dinamicamente -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Zone Template -->
+    <template id="zone-template">
+        <div class="zone-item" data-zone-id="">
+            <div class="zone-header">
+                <div class="zone-position-indicator">
+                    <span class="zone-position-text">0cm</span>
+                    <h4 class="zone-title" contenteditable="true" data-placeholder="Clique para editar">Nova Zona</h4>
+                </div>
+                <div class="zone-actions">
+                    <button class="zone-action-btn zone-collapse-btn" title="Colapsar/Expandir">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <button class="zone-action-btn zone-delete-btn" title="Excluir">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="zone-content">
+                <div class="zone-settings">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Posição (cm)</label>
+                            <div class="slider-container">
+                                <input type="range" class="zone-position-slider" min="0" max="600" step="1" value="0">
+                                <input type="number" class="zone-position-input form-input" placeholder="0" step="1" min="0" max="600">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Conteúdo</label>
+                            <select class="zone-type-input form-select">
+                                <option value="0">Imagem</option>
+                                <option value="1">Vídeo</option>
+                                <option value="2">Texto</option>
+                                <option value="3">Aplicação</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Padding (cm)</label>
+                            <div class="slider-container">
+                                <input type="range" class="zone-padding-slider" min="0" max="100" step="1" value="20">
+                                <input type="number" class="zone-padding-input form-input" placeholder="20" step="1" min="0" max="100">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Padding de Entrada (cm)</label>
+                            <div class="slider-container">
+                                <input type="range" class="zone-enter-padding-slider" min="0" max="50" step="1" value="10">
+                                <input type="number" class="zone-enter-padding-input form-input" placeholder="10" step="1" min="0" max="50">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Padding de Saída (cm)</label>
+                            <div class="slider-container">
+                                <input type="range" class="zone-exit-padding-slider" min="0" max="50" step="1" value="10">
+                                <input type="number" class="zone-exit-padding-input form-input" placeholder="10" step="1" min="0" max="50">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fade In (segundos)</label>
+                            <div class="slider-container">
+                                <input type="range" class="zone-fadein-slider" min="0" max="5" step="0.1" value="1.0">
+                                <input type="number" class="zone-fadein-input form-input" placeholder="1.0" step="0.1" min="0" max="5">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Fade Out (segundos)</label>
+                            <div class="slider-container">
+                                <input type="range" class="zone-fadeout-slider" min="0" max="5" step="0.1" value="0.5">
+                                <input type="number" class="zone-fadeout-input form-input" placeholder="0.5" step="0.1" min="0" max="5">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" class="zone-active-input form-checkbox">
+                                Zona Ativa
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload de Arquivo com Preview -->
+                    <div class="zone-content-file-group">
+                        <label class="form-label">Arquivo de Conteúdo</label>
+                        <div class="file-upload-container">
+                            <input type="file" class="zone-content-file-upload" accept="image/*,video/*">
+                            <div class="file-info">
+                                <span class="zone-file-name">Nenhum arquivo selecionado</span>
+                                <button type="button" class="zone-remove-file btn btn-sm btn-danger" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="zone-preview" style="display: none;">
+                            <img class="zone-preview-image" alt="Preview">
+                            <video class="zone-preview-video" controls style="display: none;">
+                                <source src="" type="video/mp4">
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <!-- Configurações específicas por tipo -->
+                    <div class="zone-type-settings">
+                        <!-- Configurações de imagem -->
+                        <div class="zone-image-settings">
+                            <h5>Configurações de Imagem</h5>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Manter Proporção</label>
+                                    <input type="checkbox" class="zone-maintain-aspect form-checkbox" checked>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tamanho (px)</label>
+                                    <div class="size-inputs">
+                                        <input type="number" class="zone-size-width form-input" placeholder="1920" min="100" max="4000">
+                                        <span>x</span>
+                                        <input type="number" class="zone-size-height form-input" placeholder="1080" min="100" max="4000">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Configurações de vídeo -->
+                        <div class="zone-video-settings">
+                            <h5>Configurações de Vídeo</h5>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Reproduzir Automaticamente</label>
+                                    <input type="checkbox" class="zone-play-on-awake form-checkbox">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Volume</label>
+                                    <div class="slider-container">
+                                        <input type="range" class="zone-volume-slider" min="0" max="1" step="0.1" value="1.0">
+                                        <input type="number" class="zone-volume-input form-input" placeholder="1.0" step="0.1" min="0" max="1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Configurações de texto -->
+                        <div class="zone-text-settings">
+                            <h5>Configurações de Texto</h5>
+                            <div class="form-group">
+                                <label class="form-label">Texto</label>
+                                <textarea class="zone-text-content form-textarea" placeholder="Digite o texto da zona"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Tamanho da Fonte</label>
+                                    <div class="slider-container">
+                                        <input type="range" class="zone-fontsize-slider" min="12" max="120" step="1" value="72">
+                                        <input type="number" class="zone-fontsize-input form-input" placeholder="72" min="12" max="120">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Cor do Texto</label>
+                                    <input type="color" class="zone-text-color form-input" value="#000000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botão de Salvar Zona -->
+                    <div class="zone-save-section">
+                        <button class="zone-save-btn btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Salvar Zona
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Load Modal -->
+    <div id="load-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Carregar Configuração</h3>
+                <button id="close-modal" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="form-section">
+                <div class="form-group">
+                    <label class="form-label">Selecionar Arquivo JSON</label>
+                    <input type="file" id="load-json-file" accept=".json" class="form-input">
+                </div>
+                <div class="header-actions">
+                    <button id="load-file-btn" class="btn btn-primary">Carregar</button>
+                    <button id="cancel-load-btn" class="btn btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- JSZip para criar pacotes ZIP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="trilho-configurator.js"></script>
+</body>
+</html>

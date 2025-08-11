@@ -32,7 +32,7 @@ namespace Trilho.Examples
             
             if (trilhoManager == null)
             {
-                Debug.LogError("TrilhoGameManager not found! Please assign it or add TrilhoGameManager to the scene.");
+                UnityEngine.Debug.LogError("TrilhoGameManager not found! Please assign it or add TrilhoGameManager to the scene.");
                 enabled = false;
                 return;
             }
@@ -117,7 +117,7 @@ namespace Trilho.Examples
                 if (trilhoManager != null)
                 {
                     trilhoManager.StopSimulation();
-                    Debug.Log("Simulation stopped");
+                    UnityEngine.Debug.Log("Simulation stopped");
                 }
             }
         }
@@ -129,33 +129,33 @@ namespace Trilho.Examples
                 trilhoManager.SimulatePosition(position);
                 if (showDebugInfo)
                 {
-                    Debug.Log($"Jumped to {label} ({position}cm)");
+                    UnityEngine.Debug.Log($"Jumped to {label} ({position}cm)");
                 }
             }
         }
         
         private void PrintKeyboardHelp()
         {
-            Debug.Log("=== TRILHO KEYBOARD CONTROLS ===");
-            Debug.Log("Movement:");
-            Debug.Log("  ← → : Move Left/Right");
-            Debug.Log($"  Speed: {movementSpeed} cm/s");
-            Debug.Log("");
-            Debug.Log("Quick Jump:");
-            Debug.Log($"  0 : Start (0cm)");
-            Debug.Log($"  1 : Zone 1 ({zone1Position}cm)");
-            Debug.Log($"  2 : Zone 2 ({zone2Position}cm)");
-            Debug.Log($"  3 : Zone 3 ({zone3Position}cm)");
-            Debug.Log($"  4 : Zone 4 ({zone4Position}cm)");
-            Debug.Log($"  5 : Background ({backgroundPosition}cm)");
-            Debug.Log($"  E : End (600cm)");
-            Debug.Log("");
-            Debug.Log("Other:");
-            Debug.Log("  R : Reset to Start");
-            Debug.Log("  H : Show this Help");
-            Debug.Log("  I : Show current Info");
-            Debug.Log("  Q : Stop simulation");
-            Debug.Log("================================");
+            UnityEngine.Debug.Log("=== TRILHO KEYBOARD CONTROLS ===");
+            UnityEngine.Debug.Log("Movement:");
+            UnityEngine.Debug.Log("  ← → : Move Left/Right");
+            UnityEngine.Debug.Log($"  Speed: {movementSpeed} cm/s");
+            UnityEngine.Debug.Log("");
+            UnityEngine.Debug.Log("Quick Jump:");
+            UnityEngine.Debug.Log($"  0 : Start (0cm)");
+            UnityEngine.Debug.Log($"  1 : Zone 1 ({zone1Position}cm)");
+            UnityEngine.Debug.Log($"  2 : Zone 2 ({zone2Position}cm)");
+            UnityEngine.Debug.Log($"  3 : Zone 3 ({zone3Position}cm)");
+            UnityEngine.Debug.Log($"  4 : Zone 4 ({zone4Position}cm)");
+            UnityEngine.Debug.Log($"  5 : Background ({backgroundPosition}cm)");
+            UnityEngine.Debug.Log($"  E : End (600cm)");
+            UnityEngine.Debug.Log("");
+            UnityEngine.Debug.Log("Other:");
+            UnityEngine.Debug.Log("  R : Reset to Start");
+            UnityEngine.Debug.Log("  H : Show this Help");
+            UnityEngine.Debug.Log("  I : Show current Info");
+            UnityEngine.Debug.Log("  Q : Stop simulation");
+            UnityEngine.Debug.Log("================================");
         }
         
         private void PrintCurrentInfo()
@@ -165,10 +165,10 @@ namespace Trilho.Examples
             float currentPos = trilhoManager.GetCurrentPositionCm();
             float unityPos = trilhoManager.GetCurrentUnityPosition();
             
-            Debug.Log("=== INFO ATUAL DO TRILHO ===");
-            Debug.Log($"Posição: {currentPos:F1}cm");
-            Debug.Log($"Unity X: {unityPos:F3}");
-            Debug.Log("===========================");
+            UnityEngine.Debug.Log("=== INFO ATUAL DO TRILHO ===");
+            UnityEngine.Debug.Log($"Posição: {currentPos:F1}cm");
+            UnityEngine.Debug.Log($"Unity X: {unityPos:F3}");
+            UnityEngine.Debug.Log("===========================");
         }
         
         // Context menu methods for easy testing
@@ -197,7 +197,7 @@ namespace Trilho.Examples
         {
             if (showDebugInfo && trilhoManager != null)
             {
-                Debug.Log("TrilhoKeyboardController enabled. Press H for help.");
+                UnityEngine.Debug.Log("TrilhoKeyboardController enabled. Press H for help.");
             }
         }
         

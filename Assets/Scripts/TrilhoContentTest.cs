@@ -19,7 +19,7 @@ namespace Trilho
         [ContextMenu("Criar Conteúdo de Teste")]
         public void CreateSimpleTestContent()
         {
-            Debug.Log("=== CRIANDO CONTEÚDO DE TESTE ===");
+            UnityEngine.Debug.Log("=== CRIANDO CONTEÚDO DE TESTE ===");
             
             // Criar Canvas se não existir
             var canvas = FindObjectOfType<Canvas>();
@@ -36,7 +36,7 @@ namespace Trilho
                 
                 canvasGO.AddComponent<GraphicRaycaster>();
                 
-                Debug.Log("✅ Canvas criado");
+                UnityEngine.Debug.Log("✅ Canvas criado");
             }
             
             // Criar conteúdo simples
@@ -67,7 +67,7 @@ namespace Trilho
             textRect.sizeDelta = Vector2.zero;
             textRect.anchoredPosition = Vector2.zero;
             
-            Debug.Log("✅ Conteúdo de teste criado - VERIFIQUE A GAME VIEW!");
+            UnityEngine.Debug.Log("✅ Conteúdo de teste criado - VERIFIQUE A GAME VIEW!");
         }
         
         [ContextMenu("Verificar Canvas")]
@@ -77,24 +77,24 @@ namespace Trilho
             if (canvas != null)
             {
                 var contents = canvas.GetComponentsInChildren<Image>();
-                Debug.Log($"✅ Canvas encontrado com {contents.Length} conteúdos");
+                UnityEngine.Debug.Log($"✅ Canvas encontrado com {contents.Length} conteúdos");
                 
                 foreach (var content in contents)
                 {
-                    Debug.Log($"   - {content.name}: {content.color}");
+                    UnityEngine.Debug.Log($"   - {content.name}: {content.color}");
                 }
             }
             else
             {
-                Debug.LogError("❌ Canvas não encontrado!");
+                UnityEngine.Debug.LogError("❌ Canvas não encontrado!");
             }
         }
         
         [ContextMenu("Limpar Console")]
         public void ClearConsole()
         {
-            Debug.ClearDeveloperConsole();
-            Debug.Log("=== CONSOLE LIMPO ===");
+            UnityEngine.Debug.ClearDeveloperConsole();
+            UnityEngine.Debug.Log("=== CONSOLE LIMPO ===");
         }
     }
 }

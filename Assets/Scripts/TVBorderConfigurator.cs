@@ -159,7 +159,7 @@ namespace Trilho
             #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
             #endif
-            Debug.Log($"[BORDAS] Salvas: Esquerda={savedLeftX:F1} | Direita={savedRightX:F1} | Largura={Mathf.Abs(savedRightX-savedLeftX):F1}");
+            UnityEngine.Debug.Log($"[BORDAS] Salvas: Esquerda={savedLeftX:F1} | Direita={savedRightX:F1} | Largura={Mathf.Abs(savedRightX-savedLeftX):F1}");
 
             // Atualiza largura no Trilho
             SyncWidthToTrilho();
@@ -171,7 +171,7 @@ namespace Trilho
             PlayerPrefs.DeleteKey(prefsLeftKey);
             PlayerPrefs.DeleteKey(prefsRightKey);
             PlayerPrefs.Save();
-            Debug.Log("[BORDAS] PlayerPrefs limpos para este configurador.");
+            UnityEngine.Debug.Log("[BORDAS] PlayerPrefs limpos para este configurador.");
         }
         
         [ContextMenu("Sincronizar Largura com Trilho")]
@@ -195,7 +195,7 @@ namespace Trilho
                 widthCm = Mathf.Abs(rightCm - leftCm);
             }
             trilho.SetScreenWidthCm(widthCm);
-            Debug.Log($"[BORDAS] Largura sincronizada com Trilho: {widthCm:F2}cm");
+            UnityEngine.Debug.Log($"[BORDAS] Largura sincronizada com Trilho: {widthCm:F2}cm");
         }
         
         public float GetWidth()

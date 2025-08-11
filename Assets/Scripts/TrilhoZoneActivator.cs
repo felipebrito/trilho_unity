@@ -126,7 +126,7 @@ namespace Trilho
                     }
                     z.isActive = shouldBeActive;
                     if (showDebugLogs)
-                        Debug.Log($"[ZONES] {(shouldBeActive?"ON":"OFF")} {z.name} @ {z.positionCm}cm | left={leftEdge:F1} right={rightEdge:F1} zone=[{zoneStart:F1},{zoneEnd:F1}] w={widthCm:F1} dir={_dir} enterPad={enterPad} exitPad={exitPad}");
+                        UnityEngine.Debug.Log($"[ZONES] {(shouldBeActive?"ON":"OFF")} {z.name} @ {z.positionCm}cm | left={leftEdge:F1} right={rightEdge:F1} zone=[{zoneStart:F1},{zoneEnd:F1}] w={widthCm:F1} dir={_dir} enterPad={enterPad} exitPad={exitPad}");
                 }
                 else if (shouldBeActive && z.isActive && z.placeContentAtWorldX && z.keepUpdatingWhileActive)
                 {

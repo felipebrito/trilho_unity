@@ -1,60 +1,123 @@
-# Trilho (Unity)
+# Trilho - Sistema de Configuração Interativa
 
-Sistema simples para ativação de conteúdos por zonas em centímetros, sincronizado com a largura real da TV.
+Sistema de configuração interativa para trilhos digitais com suporte a múltiplos tipos de conteúdo (imagens, vídeos, texto e aplicações).
 
-## Requisitos
-- Unity 6.1 (URP) ou superior
-- Pacote Input System habilitado (ou use o `TrilhoUniversalInputController` com Legacy)
+## 🚀 Funcionalidades
 
-## Como baixar
-```bash
-git clone https://github.com/felipebrito/trilho_unity.git
-cd trilho_unity
+- **Configuração Visual**: Interface web intuitiva para configurar trilhos
+- **Múltiplos Tipos de Conteúdo**: Suporte a imagens, vídeos, texto e aplicações
+- **Configuração de Câmera**: Ajustes de posição, tamanho e parâmetros da câmera
+- **Sistema OSC**: Configuração de comunicação OSC
+- **Background Configurável**: Posicionamento e dimensionamento de fundos
+- **Zonas de Conteúdo**: Criação e gerenciamento de zonas com posicionamento preciso
+- **Exportação Unity**: Geração de pacotes completos para Unity
+- **Interface Responsiva**: Funciona em desktop e dispositivos móveis
+
+## 🛠️ Tecnologias
+
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Backend**: Unity (C#)
+- **Formato de Dados**: JSON
+- **Comunicação**: OSC (Open Sound Control)
+
+## 📁 Estrutura do Projeto
+
 ```
-Abra o projeto no Unity.
+Trilho/
+├── Assets/
+│   ├── Scripts/           # Scripts Unity (C#)
+│   ├── Scenes/           # Cenas Unity
+│   ├── StreamingAssets/  # Configurador Web
+│   │   ├── trilho-configurator.html
+│   │   ├── trilho-configurator.js
+│   │   ├── trilho-configurator-clean.css
+│   │   └── trilho_config.json
+│   └── Settings/         # Configurações Unity
+├── ProjectSettings/       # Configurações do projeto
+└── README.md
+```
 
-## Cena
-Abra a cena: `Assets/Scenes/Trilho-v2.unity`
+## 🚀 Como Usar
 
-## Configuração rápida
-1) TVBorderConfigurator (na GameObject `--SETUP--`)
-- Ajuste as bordas (Q/W esquerda, O/P direita). Enter salva em PlayerPrefs.
-- Opcional: marque “Usar largura manual (cm)” e defina, por exemplo, 75.69.
-- Clique “Aplicar ao Trilho/Enviar Largura ao Trilho”.
+### 1. Configurador Web
+1. Abra `Assets/StreamingAssets/trilho-configurator.html` em um navegador
+2. Configure os parâmetros do trilho, câmera, OSC e background
+3. Crie e configure zonas de conteúdo
+4. Salve a configuração localmente ou exporte para Unity
 
-2) TrilhoGameManager
-- Responsável por posição do trilho, mapeamento cm↔Unity e movimento da câmera.
-- Se quiser simular, marque “Simulação de Posição” e use as setas (ou os botões do inspector).
+### 2. Unity
+1. Abra o projeto no Unity
+2. Execute a cena desejada
+3. O sistema carregará automaticamente a configuração do JSON
 
-3) TrilhoZoneActivator (no mesmo `--SETUP--`)
-- Adicione zonas. `positionCm` é o INÍCIO da zona; a faixa da zona = `positionCm` até `positionCm + largura da TV`.
-- Marque `placeContentAtWorldX` para posicionar o conteúdo automaticamente no X correto; use `contentOffsetCm` se precisar ajuste fino.
-- A ativação ocorre quando a janela da TV sobrepõe a faixa da zona; a saída usa histerese por direção (não apaga até a borda oposta passar).
-- Ative `drawGameOverlay` para ver na Game View a janela (linhas ciano) e as duas linhas da zona.
+## 📋 Configuração
 
-## Teste rápido
-- Dê Play.
-- Use setas esquerda/direita para mover (se simulação estiver ativa).
-- Quando a janela cobrir uma zona, o conteúdo liga com fade; desliga quando a borda oposta sai da faixa.
+### Trilho
+- **Largura (px)**: Largura da tela em pixels
+- **Altura (px)**: Altura da tela em pixels
+- **Largura (cm)**: Largura física em centímetros
+- **Altura (cm)**: Altura física em centímetros
 
-## Controles (teste)
-- `TrilhoKeyboardController`: setas para mover; teclas 0–5 para saltos rápidos.
-- `TrilhoUniversalInputController`: funciona com Input System ou Legacy (auto‑detecção).
+### Câmera
+- **Posição X, Y, Z**: Posição da câmera no espaço 3D
+- **Tamanho**: Tamanho da câmera ortográfica
 
-## Dicas de debug
-- Se a ativação parecer “adiantada/atrasada”, confirme a “Largura da TV (cm)” no `TrilhoGameManager`.
-- Use o overlay do `TrilhoZoneActivator` para ver:
-  - Janela (cm): início/fim
-  - Duas linhas da zona: início e fim (início + largura)
-- Ajuste `enterPaddingCm`/`exitPaddingCm` na zona para folga.
+### OSC
+- **Host**: Endereço IP do servidor OSC
+- **Porta**: Porta de comunicação OSC
 
-## Estrutura principal
-- `TVBorderConfigurator`: calibração das bordas e envio da largura ao Trilho.
-- `TrilhoGameManager`: mapeamento cm↔Unity, posição do trilho, câmera.
-- `TrilhoZoneActivator`: ativação por zonas (faixa = início + largura da TV), overlays e fades.
+### Background
+- **Posição X, Y, Z**: Posição do fundo
+- **Largura, Altura**: Dimensões do fundo
 
-## Problemas comuns
-- “Nada ativa”: verifique se a largura foi aplicada ao Trilho e se `drawGameOverlay` está ativo.
-- “Desliga cedo”: aumente `exitPaddingCm` da zona; confirme que a faixa da zona cobre o conteúdo desejado.
-- “Teclado não responde”: ative “Simulação” no `TrilhoGameManager` ou use os scripts de exemplo.
+### Zonas
+- **Tipo**: Imagem, Vídeo, Texto ou Aplicação
+- **Posição (cm)**: Posição no trilho em centímetros
+- **Largura, Altura**: Dimensões da zona
+- **Conteúdo**: Arquivo ou texto específico
+
+## 💾 Salvamento e Exportação
+
+- **Salvar**: Salva configuração no localStorage do navegador
+- **Salvar JSON**: Download do arquivo de configuração
+- **Exportar Unity**: Gera pacote ZIP com JSON e arquivos de mídia
+
+## 🔧 Desenvolvimento
+
+### Estrutura dos Scripts Unity
+- `TrilhoConfigLoader.cs`: Carrega e aplica configurações
+- `TrilhoGameManager.cs`: Gerencia o sistema principal
+- `TrilhoSceneSetup.cs`: Configuração automática da cena
+- `TrilhoZoneActivator.cs`: Ativação de zonas de conteúdo
+
+### Personalização
+- Modifique `trilho-configurator-clean.css` para alterar o visual
+- Edite `trilho-configurator.js` para funcionalidades customizadas
+- Ajuste `trilho_config.json` para configurações padrão
+
+## 📱 Compatibilidade
+
+- **Navegadores**: Chrome, Firefox, Safari, Edge (versões modernas)
+- **Unity**: 2021.3 LTS ou superior
+- **Dispositivos**: Desktop, tablet e mobile
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 📞 Suporte
+
+Para suporte técnico ou dúvidas, abra uma issue no GitHub.
+
+---
+
+**Desenvolvido com ❤️ para a comunidade de mídia interativa**
 

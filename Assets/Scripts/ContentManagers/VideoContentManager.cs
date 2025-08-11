@@ -257,22 +257,22 @@ namespace Trilho.ContentManagers
         
         private void OnVideoPrepared(VideoPlayer player)
         {
-            Debug.Log($"Video prepared: {player.url}");
+            UnityEngine.Debug.Log($"Video prepared: {player.url}");
         }
         
         private void OnVideoStarted(VideoPlayer player)
         {
-            Debug.Log($"Video started: {player.url}");
+            UnityEngine.Debug.Log($"Video started: {player.url}");
         }
         
         private void OnVideoLoopPointReached(VideoPlayer player)
         {
-            Debug.Log($"Video loop point reached: {player.url}");
+            UnityEngine.Debug.Log($"Video loop point reached: {player.url}");
         }
         
         private void OnVideoError(VideoPlayer player, string message)
         {
-            Debug.LogError($"Video error: {message}");
+            UnityEngine.Debug.LogError($"Video error: {message}");
         }
         
         #endregion

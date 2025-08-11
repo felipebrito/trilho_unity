@@ -1,0 +1,319 @@
+{
+  "configName": "Cena Trilho-v3 - Configuração Base",
+  "description": "Configuração base da cena Trilho-v3 para testes do configurador",
+  "version": "3.0.0",
+  "lastModified": "2025-01-27T15:30:00",
+  "physicalMaxCm": 600,
+  "unityMinPosition": 0,
+  "unityMaxPosition": 8520,
+  "screenWidthInCm": 60,
+  "movementSensitivity": 0.5,
+  "cameraSmoothing": 5,
+  "oscValorNormalizado01": true,
+  "oscPort": 9000,
+  "showDebugInfo": true,
+  "simulatePosition": true,
+  "contentZones": [
+    {
+      "name": "Entrada Principal",
+      "description": "Zona de entrada com fundo azul",
+      "positionCm": 50,
+      "paddingCm": 20,
+      "enterPaddingCm": 10,
+      "exitPaddingCm": 10,
+      "contentType": 2,
+      "contentFileName": "",
+      "contentPath": "",
+      "placeContentAtWorldX": true,
+      "contentOffsetCm": 0,
+      "keepUpdatingWhileActive": false,
+      "reference": 0,
+      "fadeInSeconds": 1.0,
+      "fadeOutSeconds": 0.5,
+      "imageSettings": {
+        "maintainAspectRatio": true,
+        "size": [800, 600],
+        "tint": [0.2, 0.4, 0.8, 1]
+      },
+      "videoSettings": {
+        "loop": true,
+        "playOnAwake": false,
+        "volume": 1.0,
+        "mute": false
+      },
+      "textSettings": {
+        "text": "Bem-vindo ao Trilho-v3\n\nSistema de Posicionamento Interativo",
+        "fontSize": 72,
+        "textColor": [1, 1, 1, 1],
+        "alignment": 4,
+        "fontStyle": 0
+      },
+      "appSettings": {
+        "applicationPath": "",
+        "arguments": "",
+        "waitForExit": false,
+        "hideUnityWhileRunning": true,
+        "launchTimeout": 10,
+        "autoCloseOnTimeout": false
+      }
+    },
+    {
+      "name": "Apresentação do Sistema",
+      "description": "Vídeo introdutório do sistema Trilho-v3",
+      "positionCm": 120,
+      "paddingCm": 25,
+      "enterPaddingCm": 12,
+      "exitPaddingCm": 12,
+      "contentType": 1,
+      "contentFileName": "Videos/video.mp4",
+      "contentPath": "Videos/video.mp4",
+      "placeContentAtWorldX": true,
+      "contentOffsetCm": 0,
+      "keepUpdatingWhileActive": true,
+      "reference": 0,
+      "fadeInSeconds": 1.2,
+      "fadeOutSeconds": 0.6,
+      "imageSettings": {
+        "maintainAspectRatio": true,
+        "size": [1920, 1080],
+        "tint": [1, 1, 1, 1]
+      },
+      "videoSettings": {
+        "loop": true,
+        "playOnAwake": true,
+        "volume": 0.8,
+        "mute": false
+      },
+      "textSettings": {
+        "text": "Sistema Trilho-v3",
+        "fontSize": 64,
+        "textColor": [1, 1, 1, 1],
+        "alignment": 4,
+        "fontStyle": 0
+      },
+      "appSettings": {
+        "applicationPath": "",
+        "arguments": "",
+        "waitForExit": false,
+        "hideUnityWhileRunning": true,
+        "launchTimeout": 10,
+        "autoCloseOnTimeout": false
+      }
+    },
+    {
+      "name": "Especificações Técnicas",
+      "description": "Detalhes técnicos do sistema Trilho-v3",
+      "positionCm": 200,
+      "paddingCm": 30,
+      "enterPaddingCm": 15,
+      "exitPaddingCm": 15,
+      "contentType": 2,
+      "contentFileName": "",
+      "contentPath": "",
+      "placeContentAtWorldX": true,
+      "contentOffsetCm": 0,
+      "keepUpdatingWhileActive": false,
+      "reference": 0,
+      "fadeInSeconds": 0.8,
+      "fadeOutSeconds": 0.4,
+      "imageSettings": {
+        "maintainAspectRatio": true,
+        "size": [1920, 1080],
+        "tint": [0.2, 0.8, 0.3, 1]
+      },
+      "videoSettings": {
+        "loop": true,
+        "playOnAwake": false,
+        "volume": 1.0,
+        "mute": false
+      },
+      "textSettings": {
+        "text": "Especificações Trilho-v3:\n\n• Comprimento: 600cm\n• Resolução: 4K Ultra HD\n• FPS: 60\n• Latência: <16ms\n• Sensibilidade: Configurável\n• OSC: Porta 9000\n\nSistema de posicionamento preciso para aplicações interativas",
+        "fontSize": 56,
+        "textColor": [1, 1, 1, 1],
+        "alignment": 4,
+        "fontStyle": 0
+      },
+      "appSettings": {
+        "applicationPath": "",
+        "arguments": "",
+        "waitForExit": false,
+        "hideUnityWhileRunning": true,
+        "launchTimeout": 10,
+        "autoCloseOnTimeout": false
+      }
+    },
+    {
+      "name": "Demonstração Interativa",
+      "description": "Aplicação de demonstração do sistema",
+      "positionCm": 300,
+      "paddingCm": 35,
+      "enterPaddingCm": 18,
+      "exitPaddingCm": 18,
+      "contentType": 2,
+      "contentFileName": "",
+      "contentPath": "",
+      "placeContentAtWorldX": true,
+      "contentOffsetCm": 0,
+      "keepUpdatingWhileActive": false,
+      "reference": 0,
+      "fadeInSeconds": 0.6,
+      "fadeOutSeconds": 0.3,
+      "imageSettings": {
+        "maintainAspectRatio": true,
+        "size": [1920, 1080],
+        "tint": [0.6, 0.2, 0.8, 1]
+      },
+      "videoSettings": {
+        "loop": true,
+        "playOnAwake": false,
+        "volume": 1.0,
+        "mute": false
+      },
+      "textSettings": {
+        "text": "Demo Interativa",
+        "fontSize": 48,
+        "textColor": [1, 1, 1, 1],
+        "alignment": 4,
+        "fontStyle": 0
+      },
+      "appSettings": {
+        "applicationPath": "C:/Apps/TrilhoDemo.exe",
+        "arguments": "-fullscreen -touch -resolution 1920x1080",
+        "waitForExit": false,
+        "hideUnityWhileRunning": true,
+        "launchTimeout": 15,
+        "autoCloseOnTimeout": true
+      }
+    },
+    {
+      "name": "Galeria de Projetos",
+      "description": "Exibição de projetos realizados com Trilho-v3",
+      "positionCm": 400,
+      "paddingCm": 40,
+      "enterPaddingCm": 20,
+      "exitPaddingCm": 20,
+      "contentType": 2,
+      "contentFileName": "",
+      "contentPath": "",
+      "placeContentAtWorldX": true,
+      "contentOffsetCm": 0,
+      "keepUpdatingWhileActive": false,
+      "reference": 1,
+      "fadeInSeconds": 0.9,
+      "fadeOutSeconds": 0.5,
+      "imageSettings": {
+        "maintainAspectRatio": true,
+        "size": [1600, 900],
+        "tint": [0.9, 0.5, 0.2, 1]
+      },
+      "videoSettings": {
+        "loop": true,
+        "playOnAwake": false,
+        "volume": 1.0,
+        "mute": false
+      },
+      "textSettings": {
+        "text": "Projetos Realizados",
+        "fontSize": 52,
+        "textColor": [1, 1, 1, 1],
+        "alignment": 4,
+        "fontStyle": 0
+      },
+      "appSettings": {
+        "applicationPath": "",
+        "arguments": "",
+        "waitForExit": false,
+        "hideUnityWhileRunning": true,
+        "launchTimeout": 10,
+        "autoCloseOnTimeout": false
+      }
+    },
+    {
+      "name": "Configurações Avançadas",
+      "description": "Painel de configurações do sistema",
+      "positionCm": 500,
+      "paddingCm": 45,
+      "enterPaddingCm": 22,
+      "exitPaddingCm": 22,
+      "contentType": 2,
+      "contentFileName": "",
+      "contentPath": "",
+      "placeContentAtWorldX": true,
+      "contentOffsetCm": 0,
+      "keepUpdatingWhileActive": false,
+      "reference": 0,
+      "fadeInSeconds": 0.7,
+      "fadeOutSeconds": 0.4,
+      "imageSettings": {
+        "maintainAspectRatio": true,
+        "size": [1920, 1080],
+        "tint": [0.8, 0.2, 0.2, 1]
+      },
+      "videoSettings": {
+        "loop": true,
+        "playOnAwake": false,
+        "volume": 1.0,
+        "mute": false
+      },
+      "textSettings": {
+        "text": "Configurações Avançadas:\n\n• Sensibilidade: 0.5\n• Movimento Suave: Ativado\n• Suavização: 5\n• OSC: /unity:9000\n• Debug: Ativado\n• Simulação: Ativada\n\nToque para ajustar parâmetros",
+        "fontSize": 58,
+        "textColor": [1, 1, 1, 1],
+        "alignment": 4,
+        "fontStyle": 0
+      },
+      "appSettings": {
+        "applicationPath": "",
+        "arguments": "",
+        "waitForExit": false,
+        "hideUnityWhileRunning": true,
+        "launchTimeout": 10,
+        "autoCloseOnTimeout": false
+      }
+    },
+    {
+      "name": "Suporte e Contato",
+      "description": "Informações de suporte técnico",
+      "positionCm": 580,
+      "paddingCm": 20,
+      "enterPaddingCm": 10,
+      "exitPaddingCm": 10,
+      "contentType": 2,
+      "contentFileName": "",
+      "contentPath": "",
+      "placeContentAtWorldX": true,
+      "contentOffsetCm": 0,
+      "keepUpdatingWhileActive": false,
+      "reference": 0,
+      "fadeInSeconds": 1.0,
+      "fadeOutSeconds": 0.5,
+      "imageSettings": {
+        "maintainAspectRatio": true,
+        "size": [1920, 1080],
+        "tint": [0.9, 0.9, 0.2, 1]
+      },
+      "videoSettings": {
+        "loop": true,
+        "playOnAwake": false,
+        "volume": 1.0,
+        "mute": false
+      },
+      "textSettings": {
+        "text": "Suporte Técnico\n\n📧 suporte@trilho.com\n📱 (11) 99999-9999\n🌐 www.trilho.com\n\nHorário: Seg-Sex 9h-18h\n\nSistema Trilho-v3 v3.0.0",
+        "fontSize": 60,
+        "textColor": [1, 1, 1, 1],
+        "alignment": 4,
+        "fontStyle": 0
+      },
+      "appSettings": {
+        "applicationPath": "",
+        "arguments": "",
+        "waitForExit": false,
+        "hideUnityWhileRunning": true,
+        "launchTimeout": 10,
+        "autoCloseOnTimeout": false
+      }
+    }
+  ]
+}

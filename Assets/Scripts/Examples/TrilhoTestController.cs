@@ -70,7 +70,7 @@ namespace Trilho.Examples
             
             if (trilhoManager == null)
             {
-                Debug.LogWarning("TrilhoGameManager not found! Please assign it in the inspector.");
+                UnityEngine.Debug.LogWarning("TrilhoGameManager not found! Please assign it in the inspector.");
             }
         }
         
@@ -141,31 +141,31 @@ namespace Trilho.Examples
             if (keyboard.digit1Key.wasPressedThisFrame)
             {
                 SetPosition(65f); // Zone 1 center (30-100cm)
-                Debug.Log("Jumped to Zone 1 (65cm)");
+                UnityEngine.Debug.Log("Jumped to Zone 1 (65cm)");
                 return;
             }
             else if (keyboard.digit2Key.wasPressedThisFrame)
             {
                 SetPosition(185f); // Zone 2 center (150-220cm)
-                Debug.Log("Jumped to Zone 2 (185cm)");
+                UnityEngine.Debug.Log("Jumped to Zone 2 (185cm)");
                 return;
             }
             else if (keyboard.digit3Key.wasPressedThisFrame)
             {
                 SetPosition(340f); // Zone 3 center (300-380cm)
-                Debug.Log("Jumped to Zone 3 (340cm)");
+                UnityEngine.Debug.Log("Jumped to Zone 3 (340cm)");
                 return;
             }
             else if (keyboard.digit4Key.wasPressedThisFrame)
             {
                 SetPosition(485f); // Zone 4 center (450-520cm)
-                Debug.Log("Jumped to Zone 4 (485cm)");
+                UnityEngine.Debug.Log("Jumped to Zone 4 (485cm)");
                 return;
             }
             else if (keyboard.digit5Key.wasPressedThisFrame)
             {
                 SetPosition(550f); // Background area
-                Debug.Log("Jumped to Background (550cm)");
+                UnityEngine.Debug.Log("Jumped to Background (550cm)");
                 return;
             }
             
@@ -173,7 +173,7 @@ namespace Trilho.Examples
             if (keyboard.digit0Key.wasPressedThisFrame)
             {
                 SetPosition(0f); // Start position
-                Debug.Log("Jumped to Start (0cm)");
+                UnityEngine.Debug.Log("Jumped to Start (0cm)");
                 return;
             }
             else if (keyboard.spaceKey.wasPressedThisFrame)
@@ -187,13 +187,13 @@ namespace Trilho.Examples
             else if (keyboard.rKey.wasPressedThisFrame)
             {
                 SetPosition(0f); // Reset to start
-                Debug.Log("Reset to start position");
+                UnityEngine.Debug.Log("Reset to start position");
                 return;
             }
             else if (keyboard.eKey.wasPressedThisFrame)
             {
                 SetPosition(600f); // End position
-                Debug.Log("Jumped to End (600cm)");
+                UnityEngine.Debug.Log("Jumped to End (600cm)");
                 return;
             }
             
@@ -255,7 +255,7 @@ namespace Trilho.Examples
                 trilhoManager.SimulatePosition(0f);
             }
             
-            Debug.Log("Auto test started");
+            UnityEngine.Debug.Log("Auto test started");
         }
         
         public void StopAutoTest()
@@ -268,7 +268,7 @@ namespace Trilho.Examples
                 trilhoManager.StopSimulation();
             }
             
-            Debug.Log("Auto test stopped");
+            UnityEngine.Debug.Log("Auto test stopped");
         }
         
         // Test specific zones

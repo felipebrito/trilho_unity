@@ -26,15 +26,15 @@ namespace Trilho.Tools
         [ContextMenu("Test Video")]
         public void TestVideo()
         {
-            Debug.Log("=== TESTING VIDEO PLAYBACK ===");
+            UnityEngine.Debug.Log("=== TESTING VIDEO PLAYBACK ===");
             
             // Check if video file exists
             string fullPath = Application.dataPath + "/" + videoPath;
             bool fileExists = System.IO.File.Exists(fullPath);
             
-            Debug.Log($"Video path: {videoPath}");
-            Debug.Log($"Full path: {fullPath}");
-            Debug.Log($"File exists: {fileExists}");
+            UnityEngine.Debug.Log($"Video path: {videoPath}");
+            UnityEngine.Debug.Log($"Full path: {fullPath}");
+            UnityEngine.Debug.Log($"File exists: {fileExists}");
             
             if (fileExists)
             {
@@ -42,11 +42,11 @@ namespace Trilho.Tools
             }
             else
             {
-                Debug.LogError("❌ Video file not found!");
-                Debug.Log($"Please place a video file at: {fullPath}");
+                UnityEngine.Debug.LogError("❌ Video file not found!");
+                UnityEngine.Debug.Log($"Please place a video file at: {fullPath}");
             }
             
-            Debug.Log("=============================");
+            UnityEngine.Debug.Log("=============================");
         }
         
         private void CreateVideoPlayer()
@@ -67,11 +67,11 @@ namespace Trilho.Tools
             string videoUrl = "file://" + Application.dataPath + "/" + videoPath;
             videoPlayer.url = videoUrl;
             
-            Debug.Log($"Video URL: {videoUrl}");
+            UnityEngine.Debug.Log($"Video URL: {videoUrl}");
             
             // Start playing
             videoPlayer.Play();
-            Debug.Log("✓ Video started playing!");
+            UnityEngine.Debug.Log("✓ Video started playing!");
         }
         
         [ContextMenu("Stop Video")]
@@ -80,7 +80,7 @@ namespace Trilho.Tools
             if (videoPlayer != null)
             {
                 videoPlayer.Stop();
-                Debug.Log("Video stopped");
+                UnityEngine.Debug.Log("Video stopped");
             }
         }
         
@@ -90,7 +90,7 @@ namespace Trilho.Tools
             if (videoPlayer != null)
             {
                 videoPlayer.Pause();
-                Debug.Log("Video paused");
+                UnityEngine.Debug.Log("Video paused");
             }
         }
         
@@ -100,7 +100,7 @@ namespace Trilho.Tools
             if (videoPlayer != null)
             {
                 videoPlayer.Play();
-                Debug.Log("Video resumed");
+                UnityEngine.Debug.Log("Video resumed");
             }
         }
         

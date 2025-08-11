@@ -37,7 +37,7 @@ namespace Trilho.Examples
             
             if (trilhoManager == null)
             {
-                Debug.LogError("TrilhoGameManager not found! Please assign it or add TrilhoGameManager to the scene.");
+                UnityEngine.Debug.LogError("TrilhoGameManager not found! Please assign it or add TrilhoGameManager to the scene.");
                 enabled = false;
                 return;
             }
@@ -55,10 +55,10 @@ namespace Trilho.Examples
         {
 #if ENABLE_INPUT_SYSTEM
             useInputSystem = true;
-            Debug.Log("Using Input System package");
+            UnityEngine.Debug.Log("Using Input System package");
 #else
             useInputSystem = false;
-            Debug.Log("Using Legacy Input");
+            UnityEngine.Debug.Log("Using Legacy Input");
 #endif
         }
         
@@ -170,7 +170,7 @@ namespace Trilho.Examples
                 StopSimulation();
 #else
             // Input System is active but this method shouldn't be called
-            Debug.LogWarning("Legacy input called but Input System is active!");
+            UnityEngine.Debug.LogWarning("Legacy input called but Input System is active!");
 #endif
         }
         
@@ -181,7 +181,7 @@ namespace Trilho.Examples
                 trilhoManager.SimulatePosition(position);
                 if (showDebugInfo)
                 {
-                    Debug.Log($"[Universal Input] Jumped to {label} ({position}cm)");
+                    UnityEngine.Debug.Log($"[Universal Input] Jumped to {label} ({position}cm)");
                 }
             }
         }
@@ -191,33 +191,33 @@ namespace Trilho.Examples
             if (trilhoManager != null)
             {
                 trilhoManager.StopSimulation();
-                Debug.Log("[Universal Input] Simulation stopped");
+                UnityEngine.Debug.Log("[Universal Input] Simulation stopped");
             }
         }
         
         private void PrintKeyboardHelp()
         {
             string inputType = useInputSystem ? "Input System" : "Legacy Input";
-            Debug.Log($"=== TRILHO UNIVERSAL KEYBOARD CONTROLS ({inputType}) ===");
-            Debug.Log("Movement:");
-            Debug.Log("  ← → : Move Left/Right");
-            Debug.Log($"  Speed: {movementSpeed} cm/s");
-            Debug.Log("");
-            Debug.Log("Quick Jump:");
-            Debug.Log($"  0 : Start (0cm)");
-            Debug.Log($"  1 : Zone 1 ({zone1Position}cm)");
-            Debug.Log($"  2 : Zone 2 ({zone2Position}cm)");
-            Debug.Log($"  3 : Zone 3 ({zone3Position}cm)");
-            Debug.Log($"  4 : Zone 4 ({zone4Position}cm)");
-            Debug.Log($"  5 : Background ({backgroundPosition}cm)");
-            Debug.Log($"  E : End (600cm)");
-            Debug.Log("");
-            Debug.Log("Other:");
-            Debug.Log("  R : Reset to Start");
-            Debug.Log("  H : Show this Help");
-            Debug.Log("  I : Show current Info");
-            Debug.Log("  Q : Stop simulation");
-            Debug.Log("================================================");
+            UnityEngine.Debug.Log($"=== TRILHO UNIVERSAL KEYBOARD CONTROLS ({inputType}) ===");
+            UnityEngine.Debug.Log("Movement:");
+            UnityEngine.Debug.Log("  ← → : Move Left/Right");
+            UnityEngine.Debug.Log($"  Speed: {movementSpeed} cm/s");
+            UnityEngine.Debug.Log("");
+            UnityEngine.Debug.Log("Quick Jump:");
+            UnityEngine.Debug.Log($"  0 : Start (0cm)");
+            UnityEngine.Debug.Log($"  1 : Zone 1 ({zone1Position}cm)");
+            UnityEngine.Debug.Log($"  2 : Zone 2 ({zone2Position}cm)");
+            UnityEngine.Debug.Log($"  3 : Zone 3 ({zone3Position}cm)");
+            UnityEngine.Debug.Log($"  4 : Zone 4 ({zone4Position}cm)");
+            UnityEngine.Debug.Log($"  5 : Background ({backgroundPosition}cm)");
+            UnityEngine.Debug.Log($"  E : End (600cm)");
+            UnityEngine.Debug.Log("");
+            UnityEngine.Debug.Log("Other:");
+            UnityEngine.Debug.Log("  R : Reset to Start");
+            UnityEngine.Debug.Log("  H : Show this Help");
+            UnityEngine.Debug.Log("  I : Show current Info");
+            UnityEngine.Debug.Log("  Q : Stop simulation");
+            UnityEngine.Debug.Log("================================================");
         }
         
         private void PrintCurrentInfo()
@@ -228,10 +228,10 @@ namespace Trilho.Examples
             float unityPos = trilhoManager.GetCurrentUnityPosition();
             
             string inputType = useInputSystem ? "Input System" : "Legacy Input";
-            Debug.Log($"=== TRILHO INFO ({inputType}) ===");
-            Debug.Log($"Posição: {currentPos:F1}cm");
-            Debug.Log($"Unity X: {unityPos:F3}");
-            Debug.Log("===============================");
+            UnityEngine.Debug.Log($"=== TRILHO INFO ({inputType}) ===");
+            UnityEngine.Debug.Log($"Posição: {currentPos:F1}cm");
+            UnityEngine.Debug.Log($"Unity X: {unityPos:F3}");
+            UnityEngine.Debug.Log("===============================");
         }
         
         // Context menu methods for easy testing
@@ -261,7 +261,7 @@ namespace Trilho.Examples
             if (showDebugInfo && trilhoManager != null)
             {
                 string inputType = useInputSystem ? "Input System" : "Legacy Input";
-                Debug.Log($"TrilhoUniversalInputController enabled ({inputType}). Press H for help.");
+                UnityEngine.Debug.Log($"TrilhoUniversalInputController enabled ({inputType}). Press H for help.");
             }
         }
         

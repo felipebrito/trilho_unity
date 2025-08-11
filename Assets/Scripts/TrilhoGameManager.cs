@@ -70,12 +70,12 @@ namespace Trilho
                     oscServer = new OscServer(oscConnection.port);
                     oscServer.MessageDispatcher.AddCallback(oscAddress, OnOscMessageReceived);
                     if (showDebugInfo)
-                        Debug.Log($"[TRILHO] OSC Server iniciado na porta {oscConnection.port}");
+                        UnityEngine.Debug.Log($"[TRILHO] OSC Server iniciado na porta {oscConnection.port}");
                 }
                 catch (System.Net.Sockets.SocketException e)
                 {
-                    Debug.LogWarning($"[TRILHO] Erro ao iniciar OSC Server: {e.Message}");
-                    Debug.LogWarning("[TRILHO] A porta pode estar em uso. Use simulação para testar.");
+                    UnityEngine.Debug.LogWarning($"[TRILHO] Erro ao iniciar OSC Server: {e.Message}");
+                    UnityEngine.Debug.LogWarning("[TRILHO] A porta pode estar em uso. Use simulação para testar.");
                 }
             }
         }
@@ -109,12 +109,12 @@ namespace Trilho
             if (UnityEngine.InputSystem.Keyboard.current?.leftArrowKey.isPressed == true)
             {
                 simulatedPositionCm = Mathf.Max(physicalMinCm, simulatedPositionCm - movementSensitivity);
-                if (showDebugInfo) Debug.Log($"[TRILHO] Movimento: {simulatedPositionCm}cm (←)");
+                if (showDebugInfo) UnityEngine.Debug.Log($"[TRILHO] Movimento: {simulatedPositionCm}cm (←)");
             }
             if (UnityEngine.InputSystem.Keyboard.current?.rightArrowKey.isPressed == true)
             {
                 simulatedPositionCm = Mathf.Min(physicalMaxCm, simulatedPositionCm + movementSensitivity);
-                if (showDebugInfo) Debug.Log($"[TRILHO] Movimento: {simulatedPositionCm}cm (→)");
+                if (showDebugInfo) UnityEngine.Debug.Log($"[TRILHO] Movimento: {simulatedPositionCm}cm (→)");
             }
         }
 
@@ -139,7 +139,7 @@ namespace Trilho
             catch (System.Exception e)
             {
                 if (showDebugInfo)
-                    Debug.LogWarning($"[TRILHO] Erro ao ler OSC: {e.Message}");
+                    UnityEngine.Debug.LogWarning($"[TRILHO] Erro ao ler OSC: {e.Message}");
             }
         }
 
@@ -152,7 +152,7 @@ namespace Trilho
                 currentPositionCm = Mathf.Lerp(physicalMinCm, physicalMaxCm, t);
                 currentUnityPosition = Mathf.Lerp(unityMinPosition, unityMaxPosition, t);
                 if (showDebugInfo)
-                    Debug.Log($"[TRILHO][OSC 0-1] t={t:F3} -> {currentPositionCm:F1}cm | Unity {currentUnityPosition:F1}");
+                    UnityEngine.Debug.Log($"[TRILHO][OSC 0-1] t={t:F3} -> {currentPositionCm:F1}cm | Unity {currentUnityPosition:F1}");
             }
             else
             {
@@ -160,7 +160,7 @@ namespace Trilho
                 currentPositionCm = Mathf.Clamp(positionCm, physicalMinCm, physicalMaxCm);
                 currentUnityPosition = MapPositionToUnity(currentPositionCm);
                 if (showDebugInfo)
-                    Debug.Log($"[TRILHO][OSC cm] {currentPositionCm:F1}cm -> Unity {currentUnityPosition:F1}");
+                    UnityEngine.Debug.Log($"[TRILHO][OSC cm] {currentPositionCm:F1}cm -> Unity {currentUnityPosition:F1}");
             }
         }
 
@@ -176,7 +176,7 @@ namespace Trilho
             }
             currentUnityPosition = MapPositionToUnity(currentPositionCm);
             if (showDebugInfo)
-                Debug.Log($"[TRILHO] Posição lida: {currentPositionCm}cm -> Unity: {currentUnityPosition}");
+                UnityEngine.Debug.Log($"[TRILHO] Posição lida: {currentPositionCm}cm -> Unity: {currentUnityPosition}");
         }
 
         private float MapPositionToUnity(float positionCm)
