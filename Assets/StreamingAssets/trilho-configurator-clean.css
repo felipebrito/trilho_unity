@@ -733,6 +733,38 @@ body {
     pointer-events: none;
 }
 
+/* Bullet verde movível para posição da TV no trilho */
+.trilho-tv-bullet {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: #10b981;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 30;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    transition: all 0.2s ease;
+}
+
+.trilho-tv-bullet:hover {
+    transform: translateY(-50%) scale(1.2);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);
+}
+
+.trilho-tv-bullet-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    background: #ffffff;
+    border-radius: 50%;
+}
+
 .trilho-zone-marker {
     position: absolute;
     top: 50%;
@@ -1133,6 +1165,32 @@ body {
 .size-inputs span {
     color: var(--text-secondary);
     font-weight: 500;
+}
+
+/* Botões de ação da zona */
+.zone-actions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.zone-save-btn,
+.zone-cancel-btn {
+    min-width: 120px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.zone-save-btn i,
+.zone-cancel-btn i {
+    font-size: 0.8rem;
 }
 
 /* Botão de Salvar Zona */
@@ -1855,4 +1913,1092 @@ body {
     font-size: 0.75rem;
     color: var(--text-secondary);
     font-style: italic;
+}
+
+/* ===== NOVOS ESTILOS PARA FUNCIONALIDADES AVANÇADAS ===== */
+
+/* Validation Styles */
+.validation-container {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.validation-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.validation-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.3s ease;
+}
+
+.validation-item i {
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+}
+
+.validation-pending {
+    color: var(--text-secondary);
+}
+
+.validation-success {
+    color: #4CAF50;
+}
+
+.validation-error {
+    color: #f44336;
+}
+
+.validation-item.validation-success {
+    background: rgba(76, 175, 80, 0.1);
+    border-left: 3px solid #4CAF50;
+}
+
+.validation-item.validation-error {
+    background: rgba(244, 67, 54, 0.1);
+    border-left: 3px solid #f44336;
+}
+
+.validation-summary {
+    padding: 1rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+/* Export Options */
+.export-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.export-option {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.export-option:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.export-option h4 {
+    margin: 0 0 0.75rem 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.export-option p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Package Info */
+.package-info {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-item label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.info-item span {
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+/* Installation Steps */
+.installation-steps {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+}
+
+.installation-steps ol {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.installation-steps li {
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.installation-steps code {
+    background: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+}
+
+/* Background Simulation */
+.background-simulation {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.simulation-info {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.simulation-info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    text-align: center;
+}
+
+.info-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.simulation-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: visible; /* Permitir que elementos saiam do container */
+    margin: 1rem 0;
+    min-height: 300px;
+}
+
+.simulation-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: visible; /* Não cortar a imagem */
+}
+
+.simulation-tv-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 3px solid var(--primary-color);
+    background: rgba(37, 99, 235, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    z-index: 10;
+}
+
+.simulation-tv-content {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-align: center;
+    font-size: 14px;
+}
+
+.simulation-track {
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+.simulation-arrow {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    box-shadow: var(--shadow-md);
+    transition: left 0.3s ease;
+    z-index: 15;
+}
+
+.simulation-controls {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+/* Background Preview Enhanced */
+.background-preview-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.background-preview {
+    position: relative;
+    max-width: 100%;
+    text-align: center;
+}
+
+.background-preview-img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+}
+
+.background-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Required Field Indicator */
+.form-label:has(input[required])::after {
+    content: " *";
+    color: #f44336;
+    font-weight: bold;
+}
+
+/* File Upload Enhanced */
+.file-upload-container {
+    position: relative;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: var(--bg-secondary);
+}
+
+.file-upload-container:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-primary);
+}
+
+.file-upload {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.file-info span {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Size Inputs */
+.size-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ===== WIZARD STYLES ===== */
+.wizard-progress {
+    background: #1a1a1a;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.wizard-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.wizard-steps::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #333;
+    z-index: 1;
+}
+
+.wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    background: #1a1a1a;
+    padding: 0 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.wizard-step.active .step-number {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.wizard-step.completed .step-number {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.wizard-step.completed .step-check {
+    display: block;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #333;
+    color: #666;
+    border: 2px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.step-title {
+    color: #ccc;
+    font-size: 12px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.step-check {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    background: #28a745;
+    border-radius: 50%;
+    color: white;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wizard-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #333;
+}
+
+.wizard-step-content {
+    display: none;
+}
+
+.wizard-step-content.active {
+    display: block;
+}
+
+.wizard-step-content.completed {
+    display: none;
+}
+
+/* Background Upload States */
+#background-upload-group {
+    transition: all 0.3s ease;
+}
+
+#background-dimensions-alert {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #1e3a8a;
+    border: 1px solid #3b82f6;
+    border-radius: 0.5rem;
+    color: #dbeafe;
+}
+
+#background-dimensions-alert i {
+    margin-right: 0.5rem;
+    color: #60a5fa;
+}
+
+/* Background Simulation */
+#simulation-background {
+    min-height: 200px;
+    transition: all 0.3s ease;
+}
+
+.size-inputs input {
+    flex: 1;
+}
+
+.size-inputs span {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Responsive Design for New Features */
+@media (max-width: 768px) {
+    .export-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .validation-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .simulation-container {
+        height: 150px;
+    }
+    
+    .simulation-tv-overlay {
+        width: 80%;
+        height: 50%;
+    }
+}
+
+/* Efeito de Lupa para TV */
+.simulation-tv-overlay {
+    position: relative;
+}
+
+.simulation-tv-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 30%, 
+        transparent 70%);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.simulation-tv-overlay::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 0.8) 0%, 
+        rgba(255, 255, 255, 0.4) 50%, 
+        transparent 100%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 2;
+    animation: magnifyingGlow 2s ease-in-out infinite alternate;
+}
+
+.magnifying-glass-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 30% 30%, 
+            rgba(255, 255, 255, 0.3) 0%, 
+            transparent 50%),
+        radial-gradient(circle at 70% 70%, 
+            rgba(255, 255, 255, 0.2) 0%, 
+            transparent 50%);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes magnifyingGlow {
+    0% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+/* Efeito de lupa mais intenso */
+.simulation-tv-overlay.magnifying-active {
+    backdrop-filter: blur(0px) brightness(1.3) contrast(1.2) saturate(1.1);
+    -webkit-backdrop-filter: blur(0px) brightness(1.3) contrast(1.2) saturate(1.1);
+    box-shadow: 
+        0 0 20px rgba(37, 99, 235, 0.3),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* ===== VISUALIZAÇÃO DO BACKGROUND NA SEÇÃO ZONAS ===== */
+.zones-background-visualization {
+    background: var(--bg-secondary);
+    position: relative;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+/* Overlay de simulação para zonas (seguindo lógica da aba Background) */
+.zones-simulation-tv-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 3px solid var(--primary-color);
+    background: rgba(37, 99, 235, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    width: 80%;  /* Largura proporcional como na aba Background */
+    height: 50%; /* Altura proporcional como na aba Background */
+    z-index: 10;
+    backdrop-filter: blur(0px) brightness(1.1) contrast(1.1) saturate(1.1);
+    -webkit-backdrop-filter: blur(0px) brightness(1.1) contrast(1.1) saturate(1.1);
+    box-shadow: 
+        0 0 15px rgba(37, 99, 235, 0.2),
+        inset 0 0 15px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    cursor: grab;
+}
+
+.zones-simulation-tv-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 30%, 
+        transparent 70%);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.zones-simulation-tv-overlay::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 0.8) 0%, 
+        rgba(255, 255, 255, 0.4) 50%, 
+        transparent 100%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 2;
+    animation: pulse 2s infinite;
+}
+
+.zones-simulation-tv-content {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-align: center;
+    position: relative;
+    z-index: 3;
+}
+
+.zones-simulation-tv-label {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.zones-simulation-tv-position {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Efeito de lupa mais intenso para zonas */
+.zones-simulation-tv-overlay.magnifying-active {
+    backdrop-filter: blur(0px) brightness(1.3) contrast(1.2) saturate(1.1);
+    -webkit-backdrop-filter: blur(0px) brightness(1.3) contrast(1.2) saturate(1.1);
+    box-shadow: 
+        0 0 20px rgba(37, 99, 235, 0.3),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+.zones-background-visualization h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.zones-background-visualization h3::before {
+    content: '';
+    width: 4px;
+    height: 1rem;
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+.zones-background-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.zones-background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.zones-background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.zones-tv-overlay {
+    position: absolute;
+    border: 3px solid var(--primary-color);
+    background-color: rgba(37, 99, 235, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    z-index: 30;
+    width: 80px;
+    height: 50px;
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+.zones-tv-overlay:hover {
+    background-color: rgba(37, 99, 235, 1);
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.zones-tv-overlay:active {
+    cursor: grabbing;
+}
+
+.zones-tv-content {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-align: center;
+    font-size: 12px;
+}
+
+/* Trilho sobreposto sobre a imagem */
+.zones-trilho-track {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    height: 40px;
+    background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--primary-color) 50%, var(--bg-tertiary) 100%);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.zones-trilho-start,
+.zones-trilho-end {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.zones-trilho-zones {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+/* Zonas no background */
+.zones-background-zone {
+    position: absolute;
+    top: 50%; /* Posicionado no centro vertical da imagem */
+    transform: translateY(-50%); /* Centralizado verticalmente */
+    width: 60px;
+    height: 80px;
+    background: var(--primary-color);
+    border: 2px solid #ffffff;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 50; /* Aumentado para aparecer acima do background */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.zones-background-zone:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 60; /* Aumentado para hover */
+}
+
+.zones-background-zone.hovered {
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Preview de imagem das zonas */
+.zones-zone-image-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.zones-zone-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 8px;
+}
+
+.zones-zone-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, 
+        rgba(0, 0, 0, 0.7) 0%, 
+        rgba(0, 0, 0, 0.3) 50%, 
+        rgba(0, 0, 0, 0.7) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+    color: white;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.zones-zone-overlay .zones-zone-name {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.zones-zone-overlay .zones-zone-position {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.zones-zone-content {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.zones-background-zone:hover .zones-zone-content {
+    opacity: 1;
+}
+
+.zones-zone-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.zones-zone-position {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+}
+
+.zones-zone-type {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-style: italic;
+}
+
+/* Efeito de lupa/magnificação */
+.zones-magnification-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 40;
+    overflow: hidden;
+}
+
+.zones-magnification-frame {
+    position: absolute;
+    width: 200px;
+    height: 150px;
+    border: 3px solid #3b82f6;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.1);
+    backdrop-filter: blur(2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%);
+    transition: all 0.3s ease;
+    pointer-events: all;
+    cursor: move;
+}
+
+.zones-magnification-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    text-align: center;
+    padding: 0.5rem;
+}
+
+/* Bullet verde movível para posição da TV */
+.zones-tv-bullet {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: #10b981;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 30;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    transition: all 0.2s ease;
+}
+
+.zones-tv-bullet:hover {
+    transform: translateY(-50%) scale(1.2);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);
+}
+
+.zones-tv-bullet-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    background: #ffffff;
+    border-radius: 50%;
+}
+
+.zones-trilho-scale {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    height: 30px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.5rem;
+    z-index: 20;
+}
+
+.zones-scale-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.zones-scale-marker::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 8px;
+    background: var(--border-color);
+}
+
+/* Responsive para visualização de zonas */
+@media (max-width: 768px) {
+    .zones-background-container {
+        height: 200px;
+    }
+    
+    .zones-tv-overlay {
+        font-size: 10px;
+    }
+    
+    .zones-trilho-track {
+        height: 30px;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+    }
+    
+    .zones-trilho-scale {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+    }
 }

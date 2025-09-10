@@ -8,6 +8,8 @@ class TrilhoConfigurator {
         this.zones = [];
         this.originalZones = []; // Armazena zonas originais do JSON
         this.currentTheme = 'dark';
+        this.hasUserInteracted = false; // Flag para controlar validação automática
+        this.isManualValidation = false; // Flag para controlar se é validação manual
         console.log('Configuração padrão criada:', this.config);
         this.initializeEventListeners();
         
@@ -44,19 +46,27 @@ class TrilhoConfigurator {
             project: {
                 name: 'Projeto Trilho',
                 description: '',
-                version: '1.0'
+                eventLocation: '',
+                eventDate: '',
+                clientName: '',
+                technicalResponsible: ''
             },
             trilho: {
                 physicalMinCm: 0,
-                physicalMaxCm: 600,
-                unityMinPosition: 0,
-                unityMaxPosition: 8520,
-                screenWidthCm: 60,
-                movementSensitivity: 0.5
+                physicalMaxCm: 300,
+                tvHeightFromFloor: 80,
+                screenWidthCm: 0, // Calculado automaticamente
+                screenHeightCm: 0, // Calculado automaticamente
+                movementSensitivity: 0.5,
+                cameraSmoothing: 5,
+                preActivationRange: 20 // Percentagem
             },
-            camera: {
-                smoothCameraMovement: true,
-                cameraSmoothing: 5
+            tv: {
+                model: '42',
+                orientation: 'portrait',
+                screenWidthCm: 52.5,  // TV 42" vertical: 52.5cm (altura da TV)
+                screenHeightCm: 93.5, // TV 42" vertical: 93.5cm (largura da TV)
+                resolution: '1920x1080'
             },
             osc: {
                 address: '/unity',
@@ -65,11 +75,20 @@ class TrilhoConfigurator {
             },
             background: {
                 enabled: true,
-                imageFile: 'Images/background.jpg',
-                uploadedFile: null
+                imageFile: '',
+                uploadedFile: null,
+                widthCm: 300,
+                heightCm: 200,
+                offsetX: 0,
+                offsetY: 0,
+                displayMode: 'fit',
+                opacity: 100,
+                tint: '#ffffff',
+                parallax: false
             },
             zones: [],
-            lastModified: new Date().toISOString()
+            lastModified: new Date().toISOString(),
+            creationDate: new Date().toISOString()
         };
     }
 
@@ -113,8 +132,26 @@ class TrilhoConfigurator {
         // Background management
         this.initializeBackgroundEventListeners();
 
+        // TV calculations (com delay para garantir que o DOM esteja pronto)
+        setTimeout(() => {
+            this.initializeTVCalculations();
+            // Recalcular após popular os campos
+            setTimeout(() => {
+                this.calculateTVDimensions();
+            }, 50);
+        }, 100);
+
+        // Validation
+        this.initializeValidation();
+
+        // Export functionality
+        this.initializeExport();
+
         // Zone management
         document.getElementById('add-zone-btn').addEventListener('click', () => this.addZone());
+
+        // Wizard functionality
+        this.initializeWizard();
         
         // Test sticky button
         const testStickyBtn = document.getElementById('test-sticky-btn');
@@ -153,11 +190,23 @@ class TrilhoConfigurator {
         console.log('Inicializando inputs do formulário...');
         
         // General section
-        const generalInputs = ['project-name', 'project-description', 'project-version'];
+        const generalInputs = [
+            'project-name', 'project-description',
+            'event-location', 'event-date', 'client-name', 'technical-responsible'
+        ];
         generalInputs.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
                 element.addEventListener('input', (e) => this.updateConfigValue(e.target.id, e.target.value));
+                element.addEventListener('change', (e) => this.updateConfigValue(e.target.id, e.target.value));
+            }
+        });
+
+        // TV configuration inputs
+        const tvInputs = ['tv-model', 'tv-orientation', 'screen-resolution'];
+        tvInputs.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
                 element.addEventListener('change', (e) => this.updateConfigValue(e.target.id, e.target.value));
             }
         });
@@ -173,10 +222,10 @@ class TrilhoConfigurator {
         const trilhoSliders = [
             { sliderId: 'physical-min-cm-slider', inputId: 'physical-min-cm', configPath: 'trilho.physicalMinCm' },
             { sliderId: 'physical-max-cm-slider', inputId: 'physical-max-cm', configPath: 'trilho.physicalMaxCm' },
-            { sliderId: 'unity-min-position-slider', inputId: 'unity-min-position', configPath: 'trilho.unityMinPosition' },
-            { sliderId: 'unity-max-position-slider', inputId: 'unity-max-position', configPath: 'trilho.unityMaxPosition' },
-            { sliderId: 'screen-width-cm-slider', inputId: 'screen-width-cm', configPath: 'trilho.screenWidthCm' },
-            { sliderId: 'movement-sensitivity-slider', inputId: 'movement-sensitivity', configPath: 'trilho.movementSensitivity' }
+            { sliderId: 'tv-height-from-floor-slider', inputId: 'tv-height-from-floor', configPath: 'trilho.tvHeightFromFloor' },
+            { sliderId: 'movement-sensitivity-slider', inputId: 'movement-sensitivity', configPath: 'trilho.movementSensitivity' },
+            { sliderId: 'camera-smoothing-slider', inputId: 'camera-smoothing', configPath: 'trilho.cameraSmoothing' },
+            { sliderId: 'pre-activation-range-slider', inputId: 'pre-activation-range', configPath: 'trilho.preActivationRange' }
         ];
 
         trilhoSliders.forEach(({ sliderId, inputId, configPath }) => {
@@ -213,10 +262,8 @@ class TrilhoConfigurator {
             }
         });
 
-        // Camera sliders
-        const cameraSliders = [
-            { sliderId: 'camera-smoothing-slider', inputId: 'camera-smoothing', configPath: 'camera.cameraSmoothing' }
-        ];
+        // Camera sliders (removido - configuração feita na Unity)
+        const cameraSliders = [];
 
         cameraSliders.forEach(({ sliderId, inputId, configPath }) => {
             const slider = document.getElementById(sliderId);
@@ -281,6 +328,38 @@ class TrilhoConfigurator {
     updateConfigValue(id, value) {
         console.log(`Atualizando configuração: ${id} = ${value}`);
         
+        // Marcar que o usuário interagiu
+        this.hasUserInteracted = true;
+        
+        // Mapear campos específicos
+        const fieldMappings = {
+            'project-name': 'project.name',
+            'project-description': 'project.description',
+            'event-location': 'project.eventLocation',
+            'event-date': 'project.eventDate',
+            'client-name': 'project.clientName',
+            'technical-responsible': 'project.technicalResponsible',
+            'tv-model': 'tv.model',
+            'tv-orientation': 'tv.orientation',
+            'screen-resolution': 'tv.resolution'
+        };
+        
+        if (fieldMappings[id]) {
+            const pathParts = fieldMappings[id].split('.');
+            let current = this.config;
+            
+            for (let i = 0; i < pathParts.length - 1; i++) {
+                if (!current[pathParts[i]]) {
+                    current[pathParts[i]] = {};
+                }
+                current = current[pathParts[i]];
+            }
+            
+            current[pathParts[pathParts.length - 1]] = value;
+            this.updateLastModified();
+            console.log(`Configuração atualizada: ${fieldMappings[id]} = ${value}`);
+        } else {
+            // Fallback para o método antigo
         const pathParts = id.split('-');
         if (pathParts.length >= 2) {
             const section = pathParts[0];
@@ -290,12 +369,16 @@ class TrilhoConfigurator {
                 this.config[section][field] = value;
                 this.updateLastModified();
                 console.log(`Configuração atualizada: ${section}.${field} = ${value}`);
+                }
             }
         }
     }
 
     updateConfigValueByPath(path, value) {
         console.log(`Atualizando configuração por caminho: ${path} = ${value}`);
+        
+        // Marcar que o usuário interagiu
+        this.hasUserInteracted = true;
         
         const pathParts = path.split('.');
         let current = this.config;
@@ -335,9 +418,15 @@ class TrilhoConfigurator {
             this.currentSection = sectionName;
             console.log(`Seção exibida: ${sectionName}`);
             
-                    // Se for a seção zones, atualizar o minimapa
+                    // Se for a seção zones, atualizar o minimapa e carregar imagem
         if (sectionName === 'zones') {
-            console.log('Seção zones ativada, atualizando minimapa...');
+            console.log('Seção zones ativada, atualizando minimapa e carregando imagem...');
+            
+            // Aguardar um pouco para garantir que o DOM está pronto
+            setTimeout(() => {
+                console.log('🕐 Carregando background após delay...');
+                this.loadBackgroundImageForZones();
+            }, 100);
             
             // Debug completo do DOM
             console.log('=== DEBUG DOM ===');
@@ -387,13 +476,21 @@ class TrilhoConfigurator {
     }
 
     addZone() {
+        // Calcular posição máxima permitida (trilho - largura da TV)
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const tvWidth = this.config.trilho.screenWidthCm || 52.5;
+        const maxPosition = trilhoMax - tvWidth;
+        
+        // Posição inicial no meio do trilho disponível
+        const initialPosition = Math.max(trilhoMin, Math.min(maxPosition, (trilhoMin + maxPosition) / 2));
+        
         const newZone = {
             id: Date.now().toString(),
             name: `Zona ${this.zones.length + 1}`,
             type: 0, // 0: Imagem, 1: Vídeo, 2: Texto, 3: Aplicação
-            positionCm: 0,
-            widthCm: 30,
-            heightCm: 20,
+            positionCm: initialPosition,
+            // Removidos widthCm e heightCm - não fazem sentido para zonas
             imageSettings: {
                 imageFile: '',
                 uploadedFile: null
@@ -415,6 +512,47 @@ class TrilhoConfigurator {
         this.updateTrilhoMinimap();
         this.updateLastModified();
         console.log('Nova zona adicionada:', newZone);
+        console.log(`Posição limitada entre ${trilhoMin}cm e ${maxPosition}cm (trilho: ${trilhoMax}cm - TV: ${tvWidth}cm)`);
+    }
+
+    addTestZone() {
+        console.log('🔧 Criando zona de teste...');
+        
+        // Calcular posição máxima permitida
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const tvWidth = this.config.trilho.screenWidthCm || 52.5;
+        const maxPosition = trilhoMax - tvWidth;
+        const testPosition = Math.max(trilhoMin, Math.min(maxPosition, 150)); // 150cm ou posição máxima
+        
+        const testZone = {
+            id: 'test-zone-1',
+            name: 'Zona Teste',
+            type: 0,
+            positionCm: testPosition,
+            imageSettings: {
+                imageFile: '',
+                uploadedFile: null
+            },
+            videoSettings: {
+                videoFile: '',
+                uploadedFile: null,
+                loop: true
+            },
+            textSettings: {
+                text: 'Zona Teste',
+                fontSize: 24,
+                textColor: [0, 0, 0, 1]
+            }
+        };
+
+        this.zones.push(testZone);
+        console.log('✅ Zona de teste adicionada:', testZone);
+        console.log('Zonas agora:', this.zones);
+        console.log(`Posição da zona teste: ${testPosition}cm (máximo: ${maxPosition}cm)`);
+        
+        // Atualizar minimapa novamente
+        this.updateTrilhoMinimap();
     }
 
     renderZone(zone, index) {
@@ -474,24 +612,8 @@ class TrilhoConfigurator {
                     <div class="form-group">
                         <label class="form-label">Posição (cm)</label>
                         <div class="slider-container">
-                            <input type="range" class="zone-position-slider" min="0" max="600" step="1" value="${zone.positionCm || 0}">
-                            <input type="number" class="zone-position-input form-input" value="${zone.positionCm || 0}" step="0.1">
-                        </div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Largura (px)</label>
-                        <div class="slider-container">
-                            <input type="range" class="zone-width-slider" min="100" max="2000" step="10" value="${zone.widthCm || 800}">
-                            <input type="number" class="zone-width-input form-input" value="${zone.widthCm || 800}" step="0.1">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Altura (px)</label>
-                        <div class="slider-container">
-                            <input type="range" class="zone-height-slider" min="100" max="1200" step="10" value="${zone.heightCm || 600}">
-                            <input type="number" class="zone-height-input form-input" value="${zone.heightCm || 600}" step="0.1">
+                            <input type="range" class="zone-position-slider" min="${this.config.trilho.physicalMinCm || 0}" max="${(this.config.trilho.physicalMaxCm || 300) - (this.config.trilho.screenWidthCm || 52.5)}" step="1" value="${zone.positionCm || 0}">
+                            <input type="number" class="zone-position-input form-input" value="${zone.positionCm || 0}" step="0.1" min="${this.config.trilho.physicalMinCm || 0}" max="${(this.config.trilho.physicalMaxCm || 300) - (this.config.trilho.screenWidthCm || 52.5)}">
                         </div>
                     </div>
                 </div>
@@ -499,9 +621,10 @@ class TrilhoConfigurator {
                 <div class="zone-type-settings">
                     <div class="zone-image-settings" style="display: ${zone.type === 0 ? 'block' : 'none'};">
                         <div class="form-group">
-                            <label class="form-label">Arquivo de Imagem</label>
+                            <label class="form-label">Arquivo de Imagem (1080x1920px)</label>
                             <input type="file" class="zone-image-file" accept="image/*">
                             <input type="text" class="zone-image-path form-input" placeholder="Caminho da imagem" value="${zone.imageSettings?.imageFile || ''}">
+                            <small class="form-help">Imagens devem ter resolução 1080x1920px</small>
                         </div>
                     </div>
                     
@@ -538,6 +661,16 @@ class TrilhoConfigurator {
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Botões de ação -->
+                <div class="zone-actions">
+                    <button class="btn btn-primary zone-save-btn" data-zone-id="${zone.id}">
+                        <i class="fas fa-save"></i> Salvar Zona
+                    </button>
+                    <button class="btn btn-secondary zone-cancel-btn" data-zone-id="${zone.id}">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
                 </div>
                 </div>
             </div>
@@ -697,6 +830,24 @@ class TrilhoConfigurator {
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => this.deleteZone(zone.id));
         }
+
+        // Save zone button
+        const saveBtn = zoneElement.querySelector('.zone-save-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                this.saveZone(zone);
+                this.updateTrilhoMinimap();
+                this.showToast('Zona salva com sucesso!', 'success');
+            });
+        }
+
+        // Cancel zone button
+        const cancelBtn = zoneElement.querySelector('.zone-cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                this.cancelZoneEdit(zoneElement, zone);
+            });
+        }
     }
 
     deleteZone(zoneId) {
@@ -774,10 +925,44 @@ class TrilhoConfigurator {
         }
     }
 
+    cancelZoneEdit(zoneElement, zone) {
+        // Reverter mudanças não salvas
+        const zoneIndex = this.zones.findIndex(z => z.id === zone.id);
+        if (zoneIndex !== -1) {
+            // Restaurar valores originais
+            const originalZone = this.zones[zoneIndex];
+            
+            // Restaurar nome
+            const zoneTitle = zoneElement.querySelector('.zone-title');
+            if (zoneTitle) {
+                zoneTitle.textContent = originalZone.name;
+            }
+            
+            // Restaurar posição
+            const positionSlider = zoneElement.querySelector('.zone-position-slider');
+            const positionInput = zoneElement.querySelector('.zone-position-input');
+            if (positionSlider && positionInput) {
+                positionSlider.value = originalZone.positionCm;
+                positionInput.value = originalZone.positionCm;
+            }
+            
+            // Restaurar tipo
+            const zoneTypeInput = zoneElement.querySelector('.zone-type-input');
+            if (zoneTypeInput) {
+                zoneTypeInput.value = originalZone.type;
+                this.showZoneTypeSettings(zoneElement, originalZone.type);
+            }
+            
+            this.showToast('Alterações canceladas', 'info');
+        }
+    }
+
     updateTrilhoMinimap() {
         console.log('=== ATUALIZANDO MINIMAPA ===');
         console.log('Configuração atual:', this.config);
         console.log('Zonas disponíveis:', this.zones);
+        console.log('Tipo de this.zones:', typeof this.zones);
+        console.log('Length de this.zones:', this.zones ? this.zones.length : 'undefined');
         
         // Verificar se há zonas para mostrar
         if (!this.zones || this.zones.length === 0) {
@@ -900,6 +1085,13 @@ class TrilhoConfigurator {
         
         console.log(`${this.zones.length} bullets criados no minimapa`);
         console.log('=== MINIMAPA ATUALIZADO ===');
+        
+        // Configurar bullet movível do trilho
+        this.setupTrilhoMovableBullet();
+        
+        // Renderizar zonas na visualização do background
+        this.renderZonesInBackground();
+        
         this._updatingMinimap = false;
     }
 
@@ -908,37 +1100,412 @@ class TrilhoConfigurator {
         return types[type] || 'Desconhecido';
     }
 
+    setupTrilhoMovableBullet() {
+        const bullet = document.getElementById('trilho-tv-bullet');
+        if (!bullet) return;
+
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const trilhoLength = trilhoMax - trilhoMin;
+
+        let isDragging = false;
+        let startX = 0;
+        let startLeft = 0;
+
+        // Função para converter posição do bullet para centímetros
+        const bulletToCm = (leftPercent) => {
+            return trilhoMin + (leftPercent / 100) * trilhoLength;
+        };
+
+        // Função para converter centímetros para posição do bullet
+        const cmToBullet = (cm) => {
+            return ((cm - trilhoMin) / trilhoLength) * 100;
+        };
+
+        // Event listeners para arrastar
+        bullet.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startLeft = parseFloat(bullet.style.left) || 50;
+            bullet.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const trackWidth = 400; // Largura aproximada do trilho
+            const deltaPercent = (deltaX / trackWidth) * 100;
+            let newLeft = startLeft + deltaPercent;
+
+            // Limitar entre 0% e 100%
+            newLeft = Math.max(0, Math.min(100, newLeft));
+            bullet.style.left = `${newLeft}%`;
+
+            // Atualizar posição da TV em ambas as visualizações
+            const tvCm = bulletToCm(newLeft);
+            this.updateTVPosition(tvCm);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                bullet.style.cursor = 'pointer';
+            }
+        });
+
+        // Posicionar bullet na posição atual da TV
+        const currentPosition = this.config.trilho.currentPositionCm || 150;
+        const initialPosition = cmToBullet(currentPosition);
+        bullet.style.left = `${initialPosition}%`;
+    }
+
+    setupMagnificationEffect(containerWidth, containerHeight) {
+        const magnificationFrame = document.getElementById('zones-magnification-frame');
+        const magnificationContent = document.getElementById('zones-magnification-content');
+        
+        if (!magnificationFrame || !magnificationContent) {
+            console.log('❌ Elementos de lupa não encontrados');
+            return;
+        }
+
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        // Event listeners para arrastar a lupa
+        magnificationFrame.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseFloat(magnificationFrame.style.left) || 50;
+            startTop = parseFloat(magnificationFrame.style.top) || 50;
+            magnificationFrame.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            let newLeft = startLeft + (deltaX / containerWidth) * 100;
+            let newTop = startTop + (deltaY / containerHeight) * 100;
+
+            // Limitar dentro do container
+            newLeft = Math.max(0, Math.min(100, newLeft));
+            newTop = Math.max(0, Math.min(100, newTop));
+            
+            magnificationFrame.style.left = `${newLeft}%`;
+            magnificationFrame.style.top = `${newTop}%`;
+
+            // Atualizar conteúdo da lupa
+            this.updateMagnificationContent(newLeft, newTop);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                magnificationFrame.style.cursor = 'move';
+            }
+        });
+
+        // Posicionar lupa inicialmente no centro
+        magnificationFrame.style.left = '50%';
+        magnificationFrame.style.top = '50%';
+        
+        // Atualizar conteúdo inicial
+        this.updateMagnificationContent(50, 50);
+    }
+
+    updateMagnificationContent(leftPercent, topPercent) {
+        const magnificationContent = document.getElementById('zones-magnification-content');
+        if (!magnificationContent) return;
+
+        // Calcular posição real em centímetros
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const trilhoLength = trilhoMax - trilhoMin;
+        
+        const positionCm = trilhoMin + (leftPercent / 100) * trilhoLength;
+        const heightCm = 50 + (topPercent / 100) * 100; // Altura aproximada
+
+        // Verificar se há zona nesta posição (aumentar tolerância)
+        const nearbyZone = this.zones.find(zone => 
+            Math.abs(zone.positionCm - positionCm) < 50 // Aumentar para 50cm de tolerância
+        );
+
+        if (nearbyZone) {
+            if (nearbyZone.type === 'image' && nearbyZone.imageData) {
+                magnificationContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">${positionCm.toFixed(1)}cm</div>
+                        <div style="width: 100%; height: 80px; overflow: hidden; border-radius: 4px; margin-bottom: 4px;">
+                            <img src="${nearbyZone.imageData}" alt="${nearbyZone.name}" 
+                                 style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div style="font-weight: bold; color: #3b82f6; font-size: 0.8rem;">${nearbyZone.name}</div>
+                        <div style="font-size: 0.6rem; color: #666;">${this.getZoneTypeName(nearbyZone.type)}</div>
+                    </div>
+                `;
+            } else {
+                magnificationContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-weight: bold; color: #3b82f6;">${nearbyZone.name}</div>
+                        <div style="font-size: 0.7rem; color: #666;">${positionCm.toFixed(1)}cm</div>
+                        <div style="font-size: 0.7rem; color: #666;">${this.getZoneTypeName(nearbyZone.type)}</div>
+                    </div>
+                `;
+            }
+        } else {
+            // Se não há zona próxima, mostrar a zona mais próxima disponível
+            const closestZone = this.zones.reduce((closest, zone) => {
+                const currentDistance = Math.abs(zone.positionCm - positionCm);
+                const closestDistance = Math.abs(closest.positionCm - positionCm);
+                return currentDistance < closestDistance ? zone : closest;
+            }, this.zones[0]);
+
+            if (closestZone && this.zones.length > 0) {
+                if (closestZone.type === 'image' && closestZone.imageData) {
+                    magnificationContent.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">${positionCm.toFixed(1)}cm</div>
+                            <div style="width: 100%; height: 80px; overflow: hidden; border-radius: 4px; margin-bottom: 4px;">
+                                <img src="${closestZone.imageData}" alt="${closestZone.name}" 
+                                     style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div style="font-weight: bold; color: #3b82f6; font-size: 0.8rem;">${closestZone.name}</div>
+                            <div style="font-size: 0.6rem; color: #666;">${this.getZoneTypeName(closestZone.type)}</div>
+                            <div style="font-size: 0.5rem; color: #999;">Distância: ${Math.abs(closestZone.positionCm - positionCm).toFixed(1)}cm</div>
+                        </div>
+                    `;
+                } else {
+                    magnificationContent.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: #666;">Posição: ${positionCm.toFixed(1)}cm</div>
+                            <div style="font-weight: bold; color: #3b82f6;">Zona mais próxima: ${closestZone.name}</div>
+                            <div style="font-size: 0.6rem; color: #999;">Distância: ${Math.abs(closestZone.positionCm - positionCm).toFixed(1)}cm</div>
+                        </div>
+                    `;
+                }
+            } else {
+                magnificationContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.8rem; color: #666;">Posição: ${positionCm.toFixed(1)}cm</div>
+                        <div style="font-size: 0.7rem; color: #999;">Nenhuma zona cadastrada</div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    renderZonesInBackground() {
+        console.log('=== RENDERIZANDO ZONAS NO BACKGROUND ===');
+        console.log('Zonas disponíveis:', this.zones);
+        console.log('Quantidade de zonas:', this.zones ? this.zones.length : 'undefined');
+        
+        const zonesContainer = document.getElementById('zones-trilho-zones');
+        if (!zonesContainer) {
+            console.log('❌ Container zones-trilho-zones não encontrado');
+            return;
+        }
+        console.log('✅ Container zones-trilho-zones encontrado');
+
+        // Limpar zonas existentes
+        zonesContainer.innerHTML = '';
+
+        if (!this.zones || this.zones.length === 0) {
+            console.log('❌ Nenhuma zona para renderizar no background');
+            return;
+        }
+        console.log('✅ Zonas encontradas para renderizar');
+
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const trilhoLength = trilhoMax - trilhoMin;
+
+        this.zones.forEach((zone, index) => {
+            console.log(`🔧 Renderizando zona ${index} no background:`, zone);
+            console.log(`   - Nome: ${zone.name}`);
+            console.log(`   - Posição: ${zone.positionCm}cm`);
+            console.log(`   - Tipo: ${zone.type}`);
+            
+            const zoneElement = document.createElement('div');
+            zoneElement.className = 'zones-background-zone';
+            zoneElement.dataset.zoneId = zone.id;
+            
+            // Calcular posição percentual no eixo X
+            const positionPercent = ((zone.positionCm - trilhoMin) / trilhoLength) * 100;
+            console.log(`   - Posição em cm: ${zone.positionCm}cm`);
+            console.log(`   - Trilho min: ${trilhoMin}cm, max: ${trilhoMax}cm, length: ${trilhoLength}cm`);
+            console.log(`   - Posição percentual: ${positionPercent}%`);
+            zoneElement.style.left = `${positionPercent}%`;
+            
+            // Posicionar no eixo Y dentro da altura da TV (centro vertical da área da TV)
+            zoneElement.style.top = '50%';
+            zoneElement.style.transform = 'translateY(-50%)';
+            
+            // Aplicar cor baseada no tipo
+            const zoneColor = this.getZoneColor(zone.type);
+            const borderColor = this.getZoneTypeColor(zone.type);
+            console.log(`   - Cor: ${zoneColor}, Borda: ${borderColor}`);
+            zoneElement.style.background = zoneColor;
+            zoneElement.style.borderColor = borderColor;
+            
+            // Conteúdo da zona
+            let zoneContent = '';
+            if (zone.type === 'image' && zone.imageData) {
+                zoneContent = `
+                    <div class="zones-zone-image-preview">
+                        <img src="${zone.imageData}" alt="${zone.name}" class="zones-zone-image">
+                        <div class="zones-zone-overlay">
+                            <div class="zones-zone-name">${zone.name}</div>
+                            <div class="zones-zone-position">${zone.positionCm}cm</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                zoneContent = `
+                    <div class="zones-zone-content">
+                        <div class="zones-zone-name">${zone.name}</div>
+                        <div class="zones-zone-position">${zone.positionCm}cm</div>
+                        <div class="zones-zone-type">${this.getZoneTypeName(zone.type)}</div>
+                    </div>
+                `;
+            }
+            
+            zoneElement.innerHTML = zoneContent;
+            
+            // Event listeners
+            zoneElement.addEventListener('click', () => {
+                this.focusZone(zone.id);
+            });
+            
+            zoneElement.addEventListener('mouseenter', () => {
+                zoneElement.classList.add('hovered');
+            });
+            
+            zoneElement.addEventListener('mouseleave', () => {
+                zoneElement.classList.remove('hovered');
+            });
+
+            // Drag & Drop para zonas
+            this.setupZoneDragDrop(zoneElement, zone, trilhoMin, trilhoLength);
+            
+            zonesContainer.appendChild(zoneElement);
+            console.log(`✅ Zona ${zone.name} renderizada no background na posição ${positionPercent}%`);
+            console.log(`   - Elemento adicionado ao DOM:`, zoneElement);
+        });
+        
+        console.log(`✅ ${this.zones.length} zonas renderizadas no background`);
+        console.log(`   - Container final tem ${zonesContainer.children.length} filhos`);
+        console.log(`   - HTML do container:`, zonesContainer.innerHTML);
+    }
+
+    setupZoneDragDrop(zoneElement, zone, trilhoMin, trilhoLength) {
+        let isDragging = false;
+        let startX = 0;
+        let startLeft = 0;
+
+        // Função para converter posição do mouse para centímetros
+        const mouseToCm = (mouseX, containerWidth) => {
+            const percent = (mouseX / containerWidth) * 100;
+            return trilhoMin + (percent / 100) * trilhoLength;
+        };
+
+        // Função para converter centímetros para posição percentual
+        const cmToPercent = (cm) => {
+            return ((cm - trilhoMin) / trilhoLength) * 100;
+        };
+
+        zoneElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startLeft = parseFloat(zoneElement.style.left) || 0;
+            zoneElement.style.cursor = 'grabbing';
+            zoneElement.style.zIndex = '100'; // Trazer para frente
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const container = document.getElementById('zones-background-container');
+            const containerWidth = container ? container.offsetWidth : 800;
+            
+            const deltaPercent = (deltaX / containerWidth) * 100;
+            let newLeft = startLeft + deltaPercent;
+
+            // Limitar entre 0% e 100%
+            newLeft = Math.max(0, Math.min(100, newLeft));
+            zoneElement.style.left = `${newLeft}%`;
+
+            // Atualizar posição da zona
+            const newPositionCm = mouseToCm(e.clientX - container.getBoundingClientRect().left, containerWidth);
+            zone.positionCm = Math.max(trilhoMin, Math.min(trilhoMin + trilhoLength, newPositionCm));
+            
+            // Atualizar tooltip
+            const positionElement = zoneElement.querySelector('.zones-zone-position');
+            if (positionElement) {
+                positionElement.textContent = `${zone.positionCm.toFixed(1)}cm`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                zoneElement.style.cursor = 'pointer';
+                zoneElement.style.zIndex = '50'; // Voltar ao z-index normal
+                
+                // Salvar mudanças
+                this.saveZone(zone);
+                this.updateTrilhoMinimap();
+                this.showToast(`Zona ${zone.name} movida para ${zone.positionCm.toFixed(1)}cm`, 'success');
+            }
+        });
+    }
+
+
     focusZone(zoneId) {
         // Focar na zona específica
         console.log('Focando na zona:', zoneId);
         
-        // Encontrar o elemento da zona
-        const zoneElement = document.querySelector(`[data-zone-id="${zoneId}"]`);
-        if (!zoneElement) {
-            console.error('Zona não encontrada:', zoneId);
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (!zone) {
+            console.log('Zona não encontrada:', zoneId);
             return;
         }
         
+        // Encontrar o elemento da zona no formulário
+        const zoneElement = document.querySelector(`[data-zone-id="${zoneId}"]`);
+        if (zoneElement) {
         // Expandir a zona se estiver colapsada
-        const content = zoneElement.querySelector('.zone-content');
-        if (content.classList.contains('collapsed')) {
+            const contentElement = zoneElement.querySelector('.zone-content');
+            if (contentElement && contentElement.style.display === 'none') {
             this.toggleZone(zoneElement);
         }
         
-        // Rolar para a zona
-        zoneElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-        });
-        
-        // Adicionar destaque temporário
-        zoneElement.classList.add('highlighted');
+            // Scroll para a zona
+            zoneElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Destacar a zona
+            zoneElement.style.border = '2px solid #3b82f6';
+            zoneElement.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+            
+            // Remover destaque após 3 segundos
         setTimeout(() => {
-            zoneElement.classList.remove('highlighted');
-        }, 2000);
+                zoneElement.style.border = '';
+                zoneElement.style.boxShadow = '';
+            }, 3000);
         
-        // Mostrar seção de zonas se não estiver visível
-        this.showSection('zones');
+            this.showToast(`Focando na zona: ${zone.name}`, 'info');
+        }
     }
 
     toggleZone(zoneElement) {
@@ -979,7 +1546,7 @@ class TrilhoConfigurator {
     initializeBackgroundEventListeners() {
         const backgroundEnabled = document.getElementById('background-enabled');
         const backgroundImageFile = document.getElementById('background-image-file');
-        const backgroundUpload = document.getElementById('background-upload');
+        const backgroundUpload = document.getElementById('background-image-upload');
 
         if (backgroundEnabled) {
             backgroundEnabled.addEventListener('change', (e) => {
@@ -996,16 +1563,1357 @@ class TrilhoConfigurator {
         }
 
         if (backgroundUpload) {
+            console.log('✅ Campo de upload encontrado:', backgroundUpload);
             backgroundUpload.addEventListener('change', (e) => {
+                console.log('📁 Arquivo selecionado:', e.target.files[0]);
                 const file = e.target.files[0];
                 if (file) {
+                    console.log('📁 Processando arquivo:', file.name, file.type, file.size);
                     this.config.background.uploadedFile = file;
                     this.config.background.imageFile = file.name;
-                    document.getElementById('background-image-file').value = file.name;
+                    document.getElementById('background-file-name').textContent = file.name;
+                    
+                    // Calcular proporções da imagem automaticamente
+                    this.calculateImageDimensions(file);
                     this.updateLastModified();
+                } else {
+                    console.log('❌ Nenhum arquivo selecionado');
                 }
             });
+        } else {
+            console.error('❌ Campo de upload não encontrado!');
         }
+
+        // Event listeners para dimensões do background
+        const backgroundWidth = document.getElementById('background-width-cm');
+        const backgroundHeight = document.getElementById('background-height-cm');
+        
+        // Debounce para atualizações em tempo real
+        let updateTimeout;
+        const debouncedUpdate = () => {
+            clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(() => {
+                this.updateSimulationVisual();
+                this.checkBackgroundDimensionsReady();
+            }, 100); // 100ms de delay
+        };
+        
+        if (backgroundWidth) {
+            backgroundWidth.addEventListener('input', (e) => {
+                // Atualizar configuração imediatamente
+                this.config.background.widthCm = parseFloat(e.target.value) || 300;
+                debouncedUpdate();
+            });
+        }
+        
+        if (backgroundHeight) {
+            backgroundHeight.addEventListener('input', (e) => {
+                // Atualizar configuração imediatamente
+                this.config.background.heightCm = parseFloat(e.target.value) || 200;
+                debouncedUpdate();
+            });
+        }
+        
+        // Event listeners para simulação
+        const simulationPlay = document.getElementById('simulation-play');
+        const simulationReset = document.getElementById('simulation-reset');
+        
+        if (simulationPlay) {
+            simulationPlay.addEventListener('click', () => {
+                this.simulateMovement();
+            });
+        }
+        
+        if (simulationReset) {
+            simulationReset.addEventListener('click', () => {
+                this.resetSimulation();
+            });
+        }
+    }
+
+    calculateImageDimensions(file) {
+        console.log('Calculando dimensões da imagem:', file.name);
+        
+        const img = new Image();
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            img.onload = () => {
+                console.log(`Dimensões da imagem: ${img.width}x${img.height} pixels`);
+                
+                // Calcular proporção da imagem
+                const imageRatio = img.width / img.height;
+                console.log(`Proporção da imagem: ${imageRatio.toFixed(2)}`);
+                
+                // Obter dimensões configuradas do trilho
+                const trilhoWidth = this.config.trilho.physicalMaxCm || 300;
+                const trilhoHeight = 200; // Altura padrão do background
+                
+                // Calcular dimensões proporcionais
+                let calculatedWidth, calculatedHeight;
+                
+                if (imageRatio > (trilhoWidth / trilhoHeight)) {
+                    // Imagem é mais larga - ajustar pela largura
+                    calculatedWidth = trilhoWidth;
+                    calculatedHeight = trilhoWidth / imageRatio;
+                } else {
+                    // Imagem é mais alta - ajustar pela altura
+                    calculatedHeight = trilhoHeight;
+                    calculatedWidth = trilhoHeight * imageRatio;
+                }
+                
+                console.log(`Dimensões calculadas: ${calculatedWidth.toFixed(1)}cm x ${calculatedHeight.toFixed(1)}cm`);
+                
+                // Atualizar campos
+                const widthInput = document.getElementById('background-width-cm');
+                const heightInput = document.getElementById('background-height-cm');
+                
+                if (widthInput) {
+                    const roundedWidth = parseFloat(calculatedWidth.toFixed(1));
+                    widthInput.value = roundedWidth;
+                    this.config.background.widthCm = roundedWidth;
+                }
+                
+                if (heightInput) {
+                    const roundedHeight = parseFloat(calculatedHeight.toFixed(1));
+                    heightInput.value = roundedHeight;
+                    this.config.background.heightCm = roundedHeight;
+                }
+                
+                // Manter referência do arquivo na configuração
+                this.config.background.uploadedFile = file;
+                this.config.background.hasUploadedFile = true;
+                
+                // Comprimir e salvar imagem no localStorage para persistência
+                this.compressAndSaveImage(e.target.result, file.name);
+                
+                // Atualizar preview
+                this.updateBackgroundPreview();
+                
+                // Verificar proporcionalidade com o trilho
+                this.checkTrilhoProportionality(calculatedWidth, calculatedHeight);
+                
+                // Atualizar simulação visual com delay para garantir que a imagem seja carregada
+                setTimeout(() => {
+                    this.updateSimulationVisual();
+                    console.log('Simulação visual atualizada após upload da imagem');
+                }, 200);
+                
+                this.showToast(`Imagem carregada: ${calculatedWidth.toFixed(1)}cm x ${calculatedHeight.toFixed(1)}cm`, 'success');
+            };
+            
+            img.src = e.target.result;
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    checkTrilhoProportionality(width, height) {
+        const trilhoWidth = this.config.trilho.physicalMaxCm || 300;
+        const trilhoHeight = 200; // Altura padrão do background
+        
+        const widthRatio = width / trilhoWidth;
+        const heightRatio = height / trilhoHeight;
+        
+        console.log(`Proporcionalidade: Largura ${(widthRatio * 100).toFixed(1)}%, Altura ${(heightRatio * 100).toFixed(1)}%`);
+        
+        if (Math.abs(widthRatio - heightRatio) > 0.1) {
+            this.showToast('⚠️ A imagem não está proporcional ao trilho configurado', 'warning');
+        } else {
+            this.showToast('✅ Imagem proporcional ao trilho', 'success');
+        }
+    }
+
+    updateBackgroundPreview() {
+        const preview = document.getElementById('background-preview');
+        if (preview && this.config.background.uploadedFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(this.config.background.uploadedFile);
+        }
+        
+        // Atualizar simulação visual
+        this.updateSimulationVisual();
+    }
+
+    updateSimulationVisual() {
+        console.log('🔄 Atualizando simulação visual...');
+        
+        // Obter dimensões do background
+        const bgWidth = this.config.background.widthCm || 300;
+        const bgHeight = this.config.background.heightCm || 200;
+        
+        console.log(`Background: ${bgWidth}cm x ${bgHeight}cm`);
+        
+        // Calcular escala para a simulação (máximo 600px de largura)
+        const maxWidth = 600;
+        const scale = maxWidth / bgWidth;
+        const bgSimWidth = bgWidth * scale;
+        const bgSimHeight = bgHeight * scale;
+        
+        console.log(`Escala: ${scale.toFixed(3)}, Simulação: ${bgSimWidth.toFixed(1)}x${bgSimHeight.toFixed(1)}px`);
+        
+        // Atualizar informações da simulação
+        this.updateSimulationInfo(bgWidth, bgHeight, scale);
+        
+        // Configurar container do background
+        const bgContainer = document.getElementById('simulation-background');
+        if (!bgContainer) {
+            console.error('❌ Container simulation-background não encontrado');
+            return;
+        }
+        
+        // Configurar dimensões e estilo do container
+        bgContainer.style.width = `${bgSimWidth}px`;
+        bgContainer.style.height = `${bgSimHeight}px`;
+        bgContainer.style.border = '2px solid #e5e7eb';
+        bgContainer.style.position = 'relative';
+        bgContainer.style.margin = '0 auto';
+        bgContainer.style.backgroundColor = '#f9fafb';
+        bgContainer.style.backgroundSize = 'cover';
+        bgContainer.style.backgroundPosition = 'center';
+        bgContainer.style.backgroundRepeat = 'no-repeat';
+        bgContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        bgContainer.style.minHeight = '200px';
+        bgContainer.style.overflow = 'visible'; // Permitir que elementos saiam
+        
+        // Limpar conteúdo anterior
+        bgContainer.innerHTML = '';
+        
+        // Se há imagem carregada, exibir como background
+        if (this.config.background.uploadedFile && this.config.background.uploadedFile instanceof File) {
+            console.log('Carregando imagem de background:', this.config.background.uploadedFile.name);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                bgContainer.style.backgroundImage = `url(${e.target.result})`;
+                bgContainer.style.backgroundColor = 'transparent';
+                console.log('Imagem de background carregada com sucesso');
+                
+                // Criar overlay da TV após carregar a imagem
+                this.createTVOverlay(bgContainer, scale);
+                this.createFloorDistanceLine(bgContainer, scale);
+                this.createTrackSimulation(bgContainer, scale);
+            };
+            reader.readAsDataURL(this.config.background.uploadedFile);
+        } else if (this.config.background.imageFile && this.config.background.hasUploadedFile) {
+            // Tentar carregar imagem do localStorage
+            console.log('Tentando carregar imagem do localStorage:', this.config.background.imageFile);
+            this.loadImageFromStorage(this.config.background.imageFile, bgContainer, scale);
+        } else {
+            // Adicionar placeholder quando não há imagem
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                color: #6b7280;
+                font-size: 14px;
+                pointer-events: none;
+                z-index: 1;
+            `;
+            placeholder.innerHTML = `
+                <div style="font-size: 48px; margin-bottom: 8px;">🖼️</div>
+                <div>Background: ${bgWidth.toFixed(1)}cm x ${bgHeight.toFixed(1)}cm</div>
+                <div style="font-size: 12px; margin-top: 4px;">Configure as dimensões e faça upload da imagem</div>
+            `;
+            bgContainer.appendChild(placeholder);
+            console.log('Usando placeholder visual para background');
+            
+            // Criar overlay da TV mesmo sem imagem
+            this.createTVOverlay(bgContainer, scale);
+            this.createFloorDistanceLine(bgContainer, scale);
+            this.createTrackSimulation(bgContainer, scale);
+        }
+        
+        console.log(`Simulação atualizada: Background ${bgWidth}x${bgHeight}cm`);
+    }
+    
+    updateSimulationInfo(bgWidth, bgHeight, scale) {
+        // Atualizar altura da TV do piso
+        const tvHeight = this.config.trilho.tvHeightFromFloor || 80;
+        document.getElementById('simulation-tv-height').textContent = `${tvHeight}cm`;
+        
+        // Atualizar dimensões do background
+        document.getElementById('simulation-bg-size').textContent = `${bgWidth.toFixed(1)}cm x ${bgHeight.toFixed(1)}cm`;
+        
+        // Atualizar dimensões da TV
+        const tvWidthCm = 52.5;
+        const tvHeightCm = 93.5;
+        document.getElementById('simulation-tv-size').textContent = `${tvWidthCm}cm x ${tvHeightCm}cm`;
+    }
+    
+    compressAndSaveImage(imageDataURL, fileName) {
+        try {
+            // Criar canvas para compressão
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                // Calcular dimensões otimizadas (máximo 1200px de largura)
+                const maxWidth = 1200;
+                const maxHeight = 800;
+                let { width, height } = img;
+                
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                if (height > maxHeight) {
+                    width = (width * maxHeight) / height;
+                    height = maxHeight;
+                }
+                
+                // Configurar canvas
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Desenhar imagem comprimida
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Converter para JPEG com qualidade 0.8
+                const compressedDataURL = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Tentar salvar no localStorage
+                try {
+                    localStorage.setItem(`trilho_image_${fileName}`, compressedDataURL);
+                    console.log('✅ Imagem comprimida e salva no localStorage:', fileName);
+                    console.log(`📊 Tamanho original: ${imageDataURL.length} chars, Comprimido: ${compressedDataURL.length} chars`);
+                } catch (error) {
+                    console.warn('⚠️ Erro ao salvar no localStorage:', error.message);
+                    // Limpar localStorage antigo se necessário
+                    this.clearOldImages();
+                    try {
+                        localStorage.setItem(`trilho_image_${fileName}`, compressedDataURL);
+                        console.log('✅ Imagem salva após limpeza do localStorage');
+                    } catch (retryError) {
+                        console.error('❌ Falha ao salvar imagem mesmo após limpeza:', retryError.message);
+                    }
+                }
+            };
+            
+            img.src = imageDataURL;
+        } catch (error) {
+            console.error('❌ Erro ao comprimir imagem:', error);
+        }
+    }
+    
+    clearOldImages() {
+        // Limpar imagens antigas do localStorage
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('trilho_image_')) {
+                keysToRemove.push(key);
+            }
+        }
+        
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log('🗑️ Removido do localStorage:', key);
+        });
+    }
+    
+    loadImageFromStorage(imageFileName, bgContainer, scale) {
+        // Tentar carregar imagem do localStorage
+        const storedImageData = localStorage.getItem(`trilho_image_${imageFileName}`);
+        if (storedImageData) {
+            console.log('✅ Imagem encontrada no localStorage:', imageFileName);
+            bgContainer.style.backgroundImage = `url(${storedImageData})`;
+            bgContainer.style.backgroundSize = 'cover';
+            bgContainer.style.backgroundPosition = 'center';
+            bgContainer.style.backgroundColor = 'transparent';
+            
+            // Criar overlay da TV após carregar a imagem
+            this.createTVOverlay(bgContainer, scale);
+            this.createFloorDistanceLine(bgContainer, scale);
+            this.createTrackSimulation(bgContainer, scale);
+        } else {
+            // Se não encontrar no localStorage, mostrar placeholder
+            console.log('❌ Imagem não encontrada no localStorage, mostrando placeholder');
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                color: #6b7280;
+                font-size: 14px;
+                pointer-events: none;
+                z-index: 1;
+            `;
+            placeholder.innerHTML = `
+                <div style="font-size: 48px; margin-bottom: 8px;">📁</div>
+                <div>Arquivo: ${imageFileName}</div>
+                <div style="font-size: 12px; margin-top: 4px;">Faça upload novamente para visualizar</div>
+            `;
+            bgContainer.appendChild(placeholder);
+            
+            // Criar overlay da TV mesmo sem imagem
+            this.createTVOverlay(bgContainer, scale);
+            this.createFloorDistanceLine(bgContainer, scale);
+            this.createTrackSimulation(bgContainer, scale);
+        }
+    }
+
+    loadBackgroundImageForZones() {
+        console.log('🔍 === DEBUG: loadBackgroundImageForZones ===');
+        console.log('Configuração atual:', this.config);
+        console.log('Background config:', this.config.background);
+        
+        // Verificar se há imagem de background configurada
+        if (!this.config.background.imageFile) {
+            console.log('❌ Nenhuma imagem de background configurada');
+            console.log('Background config completo:', this.config.background);
+            return;
+        }
+
+        console.log('✅ Imagem configurada:', this.config.background.imageFile);
+
+        // Verificar se a imagem existe no localStorage
+        const storedImageData = localStorage.getItem(`trilho_image_${this.config.background.imageFile}`);
+        if (!storedImageData) {
+            console.log('❌ Imagem de background não encontrada no localStorage');
+            console.log('Chave procurada:', `trilho_image_${this.config.background.imageFile}`);
+            console.log('Chaves disponíveis no localStorage:');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('trilho_image_')) {
+                    console.log('  -', key);
+                }
+            }
+            return;
+        }
+
+        console.log('✅ Imagem encontrada no localStorage, tamanho:', storedImageData.length, 'caracteres');
+        console.log('✅ Carregando imagem de background para seção zones:', this.config.background.imageFile);
+
+        // Valores do trilho configurados - MOVIDO PARA CIMA
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const trilhoLength = trilhoMax - trilhoMin;
+
+        // Criar container de visualização do background na seção zones
+        const zonesSection = document.getElementById('zones-section');
+        if (!zonesSection) {
+            console.log('❌ Seção zones não encontrada');
+            return;
+        }
+
+        // Verificar se já existe um container de visualização
+        let backgroundVisualization = document.getElementById('zones-background-visualization');
+        if (!backgroundVisualization) {
+            // Criar container de visualização
+            backgroundVisualization = document.createElement('div');
+            backgroundVisualization.id = 'zones-background-visualization';
+            backgroundVisualization.className = 'zones-background-visualization';
+            
+            // Inserir após o minimapa
+            const minimapContainer = document.querySelector('.trilho-minimap-container');
+            if (minimapContainer) {
+                minimapContainer.insertAdjacentElement('afterend', backgroundVisualization);
+            } else {
+                zonesSection.insertBefore(backgroundVisualization, zonesSection.firstChild);
+            }
+        }
+
+        // Configurar o container de visualização
+        backgroundVisualization.innerHTML = `
+            <h3>Visualização do Background</h3>
+            <div class="zones-background-container" id="zones-background-container">
+                <div class="zones-background-image" id="zones-background-image"></div>
+                <div class="zones-background-overlay" id="zones-background-overlay">
+                    <!-- Efeito de lupa/magnificação -->
+                    <div class="zones-magnification-overlay" id="zones-magnification-overlay">
+                        <div class="zones-magnification-frame" id="zones-magnification-frame">
+                            <div class="zones-magnification-content" id="zones-magnification-content">
+                                <!-- Conteúdo ampliado será inserido aqui -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Zonas sobrepostas sobre a imagem -->
+                    <div class="zones-trilho-zones" id="zones-trilho-zones">
+                        <!-- Zonas serão posicionadas aqui dinamicamente -->
+                    </div>
+                    <!-- Bullet verde movível para posição da TV (sobre a imagem) -->
+                    <div class="zones-tv-bullet" id="zones-tv-bullet" style="left: 50%; top: 50%; transform: translateY(-50%);">
+                        <div class="zones-tv-bullet-inner"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Aplicar a imagem de background
+        const backgroundImage = document.getElementById('zones-background-image');
+        console.log('🔍 Background image element:', backgroundImage);
+        if (backgroundImage) {
+            console.log('✅ Aplicando imagem de background...');
+            backgroundImage.style.backgroundImage = `url(${storedImageData})`;
+            backgroundImage.style.backgroundSize = 'cover';
+            backgroundImage.style.backgroundPosition = 'center';
+            backgroundImage.style.backgroundRepeat = 'no-repeat';
+            console.log('✅ Imagem aplicada com sucesso');
+        } else {
+            console.log('❌ Elemento zones-background-image não encontrado');
+        }
+
+        // Configurar dimensões do container
+        const bgWidth = this.config.background.widthCm || 300;
+        const bgHeight = this.config.background.heightCm || 200;
+        const tvWidth = this.config.trilho.screenWidthCm || 52.5;
+        const tvHeight = this.config.trilho.screenHeightCm || 93.5;
+        const tvHeightFromFloor = this.config.trilho.tvHeightFromFloor || 80;
+
+        // Calcular escala para visualização - usar toda a largura disponível
+        const maxWidth = 800; // Aumentar largura máxima
+        const maxHeight = 500; // Aumentar altura máxima
+        const scaleX = maxWidth / bgWidth;
+        const scaleY = maxHeight / bgHeight;
+        const scale = Math.min(scaleX, scaleY);
+
+        const containerWidth = bgWidth * scale;
+        const containerHeight = bgHeight * scale;
+
+        // Aplicar dimensões
+        const container = document.getElementById('zones-background-container');
+        if (container) {
+            container.style.width = `${containerWidth}px`;
+            container.style.height = `${containerHeight}px`;
+        }
+
+        // Posicionar TV
+        const tvOverlay = document.getElementById('zones-tv-overlay');
+        if (tvOverlay) {
+            const tvSimWidth = tvWidth * scale;
+            const tvSimHeight = tvHeight * scale;
+            const tvTopFromFloor = tvHeightFromFloor + tvHeight;
+            const tvTopPosition = ((bgHeight - tvTopFromFloor) / bgHeight) * containerHeight;
+
+            tvOverlay.style.cssText = `
+                position: absolute;
+                width: ${tvSimWidth}px;
+                height: ${tvSimHeight}px;
+                top: ${tvTopPosition}px;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 3px solid #2563eb;
+                background-color: rgba(37, 99, 235, 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                color: #2563eb;
+                font-weight: bold;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                border-radius: 8px;
+                z-index: 10;
+            `;
+        }
+
+        // Configurar bullet verde movível
+        this.setupMovableBullet(containerWidth, trilhoMin, trilhoMax);
+        
+        // Configurar efeito de lupa
+        this.setupMagnificationEffect(containerWidth, containerHeight);
+        
+        // Overlay de simulação removido (apenas bullet sobre a imagem)
+
+        console.log('✅ Visualização do background criada na seção zones');
+    }
+
+    setupMovableBullet(containerWidth, trilhoMin, trilhoMax) {
+        const bullet = document.getElementById('zones-tv-bullet');
+        if (!bullet) return;
+
+        let isDragging = false;
+        let startX = 0;
+        let startLeft = 0;
+
+        // Função para converter posição do bullet para centímetros
+        const bulletToCm = (leftPercent) => {
+            return trilhoMin + (leftPercent / 100) * (trilhoMax - trilhoMin);
+        };
+
+        // Função para converter centímetros para posição do bullet
+        const cmToBullet = (cm) => {
+            return ((cm - trilhoMin) / (trilhoMax - trilhoMin)) * 100;
+        };
+
+        // Event listeners para arrastar
+        bullet.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startLeft = parseFloat(bullet.style.left) || 50;
+            bullet.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const trackWidth = containerWidth - 40; // Largura do trilho (container - padding)
+            const deltaPercent = (deltaX / trackWidth) * 100;
+            let newLeft = startLeft + deltaPercent;
+
+            // Limitar entre 0% e 100%
+            newLeft = Math.max(0, Math.min(100, newLeft));
+            bullet.style.left = `${newLeft}%`;
+
+            // Atualizar posição da TV
+            const tvCm = bulletToCm(newLeft);
+            this.updateTVPosition(tvCm);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                bullet.style.cursor = 'pointer';
+            }
+        });
+
+        // Posicionar bullet inicialmente na posição configurada
+        const currentPosition = this.config.trilho.currentPositionCm || 150;
+        const initialPosition = cmToBullet(currentPosition);
+        bullet.style.left = `${initialPosition}%`;
+        console.log(`📺 Posição inicial da TV: ${currentPosition}cm (${initialPosition}%)`);
+    }
+
+    updateTVPosition(positionCm) {
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const trilhoLength = trilhoMax - trilhoMin;
+        const positionPercent = ((positionCm - trilhoMin) / trilhoLength) * 100;
+
+        // TV overlay removido (usando apenas zones-simulation-tv-overlay)
+
+        // Atualizar bullet do background (sobre a imagem)
+        const backgroundBullet = document.getElementById('zones-tv-bullet');
+        if (backgroundBullet) {
+            backgroundBullet.style.left = `${positionPercent}%`;
+            backgroundBullet.style.top = '50%';
+            backgroundBullet.style.transform = 'translateY(-50%)';
+        }
+
+        // Bullet do trilho removido (minimap não existe mais)
+
+        // Overlay de simulação removido (apenas bullet sobre a imagem)
+
+        // Atualizar configuração
+        this.config.trilho.currentPositionCm = positionCm;
+        console.log(`📺 Posição da TV atualizada: ${positionCm}cm`);
+    }
+    
+    createFloorDistanceLine(bgContainer, scale) {
+        // Calcular altura da TV do piso em pixels
+        const tvHeightFromFloor = this.config.trilho.tvHeightFromFloor || 80;
+        const bgHeight = this.config.background.heightCm || 200;
+        
+        // Calcular escala da simulação
+        const maxWidth = 600;
+        const bgSimHeight = Math.min(bgHeight * scale, maxWidth);
+        
+        // Calcular posição da linha do piso
+        const floorPosition = (tvHeightFromFloor / bgHeight) * bgSimHeight;
+        
+        // Criar linha do piso (base da TV)
+        const floorLine = document.createElement('div');
+        floorLine.id = 'simulation-floor-line';
+        floorLine.style.cssText = `
+            position: absolute;
+            bottom: ${floorPosition}px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #dc2626;
+            z-index: 5;
+            box-shadow: 0 0 5px rgba(220, 38, 38, 0.5);
+        `;
+        
+        // Criar label da distância
+        const distanceLabel = document.createElement('div');
+        distanceLabel.id = 'simulation-distance-label';
+        distanceLabel.style.cssText = `
+            position: absolute;
+            left: 10px;
+            bottom: ${floorPosition + 10}px;
+            background: rgba(220, 38, 38, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        `;
+        distanceLabel.textContent = `${tvHeightFromFloor}cm`;
+        
+        // Criar indicador de posição da TV
+        const positionIndicator = document.createElement('div');
+        positionIndicator.id = 'simulation-position-indicator';
+        positionIndicator.style.cssText = `
+            position: absolute;
+            right: 10px;
+            bottom: ${floorPosition + 10}px;
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        `;
+        positionIndicator.textContent = 'Posição: 0cm';
+        
+        bgContainer.appendChild(floorLine);
+        bgContainer.appendChild(distanceLabel);
+        bgContainer.appendChild(positionIndicator);
+        
+        console.log(`✅ Linha de distância criada - Posição: ${floorPosition}px, Altura do piso: ${tvHeightFromFloor}cm`);
+    }
+    
+    createTrackSimulation(bgContainer, scale) {
+        // Função removida - não precisamos mais da barra com seta
+        // Configurar controles manuais diretamente
+        this.setupManualControls(bgContainer, scale);
+        
+        console.log('✅ Controles de movimento configurados');
+    }
+    
+    setupManualControls(bgContainer, scale) {
+        // Obter dimensões do background
+        const bgWidth = this.config.background.widthCm || 300;
+        const bgHeight = this.config.background.heightCm || 200;
+        
+        // Calcular escala da simulação
+        const maxWidth = 600;
+        const bgSimWidth = Math.min(bgWidth * scale, maxWidth);
+        const bgSimHeight = Math.min(bgHeight * scale, maxWidth);
+        
+        // Calcular dimensões da TV
+        const tvWidthCm = 52.5;
+        const tvSimWidth = (tvWidthCm / bgWidth) * bgSimWidth;
+        
+        // Calcular movimento de 10cm por vez
+        const stepPixels = (10 / bgWidth) * bgSimWidth; // 10cm em pixels
+        
+        // Calcular limites de movimento da TV
+        const startX = tvSimWidth / 2; // Posição inicial (0cm)
+        const maxLeft = bgSimWidth - (tvSimWidth / 2); // Posição máxima
+        const minLeft = tvSimWidth / 2; // Posição mínima (0cm)
+        
+        console.log(`Limites da TV: minLeft=${minLeft}px, maxLeft=${maxLeft}px, step=${stepPixels.toFixed(1)}px (10cm)`);
+        
+        // Função para mover TV com interpolação suave
+        const moveTV = (direction) => {
+            const tvOverlay = document.getElementById('simulation-tv-overlay');
+            if (tvOverlay) {
+                const currentLeft = parseFloat(tvOverlay.style.left) || startX;
+                let targetLeft;
+                
+                if (direction === 'left') {
+                    targetLeft = Math.max(minLeft, currentLeft - stepPixels);
+                } else if (direction === 'right') {
+                    targetLeft = Math.min(maxLeft, currentLeft + stepPixels);
+                }
+                
+                // Interpolação suave
+                this.animateTVMovement(tvOverlay, currentLeft, targetLeft, startX, bgWidth);
+                
+                console.log(`TV movendo para ${direction}: ${targetLeft}px (10cm)`);
+            }
+        };
+        
+        // Função para resetar TV com animação suave
+        const resetTV = () => {
+            const tvOverlay = document.getElementById('simulation-tv-overlay');
+            if (tvOverlay) {
+                const initialLeft = tvOverlay.dataset.initialLeft;
+                let resetX;
+                
+                if (initialLeft) {
+                    resetX = parseFloat(initialLeft);
+                } else {
+                    resetX = startX; // Posição inicial (0cm)
+                }
+                
+                const currentLeft = parseFloat(tvOverlay.style.left) || startX;
+                
+                // Usar animação suave para reset
+                this.animateTVMovement(tvOverlay, currentLeft, resetX, startX, bgWidth);
+                
+                console.log(`TV resetando para posição inicial: ${resetX}px (0cm)`);
+            }
+        };
+        
+        // Configurar botões
+        const leftBtn = document.getElementById('simulation-left');
+        const rightBtn = document.getElementById('simulation-right');
+        const resetBtn = document.getElementById('simulation-reset');
+        
+        console.log('🔍 Procurando botões:', {
+            leftBtn: !!leftBtn,
+            rightBtn: !!rightBtn,
+            resetBtn: !!resetBtn
+        });
+        
+        if (leftBtn) {
+            leftBtn.onclick = () => {
+                console.log('🔄 Botão esquerda clicado');
+                moveTV('left');
+            };
+            console.log('✅ Botão esquerda configurado');
+        } else {
+            console.error('❌ Botão esquerda não encontrado');
+        }
+        
+        if (rightBtn) {
+            rightBtn.onclick = () => {
+                console.log('🔄 Botão direita clicado');
+                moveTV('right');
+            };
+            console.log('✅ Botão direita configurado');
+        } else {
+            console.error('❌ Botão direita não encontrado');
+        }
+        
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                console.log('🔄 Botão reset clicado');
+                resetTV();
+            };
+            console.log('✅ Botão reset configurado');
+        } else {
+            console.error('❌ Botão reset não encontrado');
+        }
+        
+        console.log('✅ Controles manuais da TV configurados');
+    }
+    
+    updatePositionIndicator(tvLeft, startX, bgWidth) {
+        // Calcular posição da TV em centímetros
+        const positionIndicator = document.getElementById('simulation-position-indicator');
+        if (!positionIndicator) return;
+        
+        // Calcular deslocamento da TV em relação ao lado esquerdo (0cm)
+        const offset = tvLeft - startX;
+        
+        // Converter offset em centímetros
+        // 0cm = lado esquerdo alinhado
+        // Positivo = movimento para a direita
+        const pixelsPerCm = 600 / bgWidth; // 600px é a largura máxima da simulação
+        const positionCm = offset / pixelsPerCm;
+        
+        // Atualizar indicador
+        positionIndicator.textContent = `Posição: ${positionCm.toFixed(1)}cm`;
+        
+        console.log(`📍 Posição atualizada: ${positionCm.toFixed(1)}cm (offset: ${offset.toFixed(1)}px)`);
+    }
+    
+    animateTVMovement(tvOverlay, startPos, endPos, startX, bgWidth) {
+        // Interpolação suave da TV
+        const duration = 300; // 300ms de animação
+        const startTime = performance.now();
+        
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Função de easing (ease-out)
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            // Calcular posição interpolada
+            const currentPos = startPos + (endPos - startPos) * easeOut;
+            
+            // Aplicar posição
+            tvOverlay.style.left = `${currentPos}px`;
+            tvOverlay.style.transform = 'translateX(-50%)';
+            
+            // Atualizar indicador de posição
+            this.updatePositionIndicator(currentPos, startX, bgWidth);
+            
+            // Continuar animação se não terminou
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                console.log(`✅ Animação concluída: ${endPos}px`);
+            }
+        };
+        
+        requestAnimationFrame(animate);
+    }
+    
+    createTVOverlay(bgContainer, scale) {
+        // Dimensões da TV 42" em portrait
+        const tvWidthCm = 52.5;
+        const tvHeightCm = 93.5;
+        
+        // Dimensões do background
+        const bgWidth = this.config.background.widthCm || 300;
+        const bgHeight = this.config.background.heightCm || 200;
+        
+        // Calcular escala da simulação
+        const maxWidth = 600;
+        const bgSimWidth = Math.min(bgWidth * scale, maxWidth);
+        const bgSimHeight = Math.min(bgHeight * scale, maxWidth);
+        
+        // Calcular dimensões da TV em pixels
+        const tvSimWidth = (tvWidthCm / bgWidth) * bgSimWidth;
+        const tvSimHeight = (tvHeightCm / bgHeight) * bgSimHeight;
+        
+        // NOVA ABORDAGEM: Calcular posição da TV de forma mais simples
+        const tvHeightFromFloor = this.config.trilho.tvHeightFromFloor || 80;
+        
+        // Calcular a posição do topo da TV
+        // Se a TV tem 93.5cm de altura e está a 80cm do piso
+        // O topo da TV está a 80cm + 93.5cm = 173.5cm do piso
+        const tvTopFromFloor = tvHeightFromFloor + tvHeightCm; // 80 + 93.5 = 173.5cm
+        const tvTopPosition = ((bgHeight - tvTopFromFloor) / bgHeight) * bgSimHeight;
+        
+        // Posição inicial da TV (lado esquerdo = 0cm)
+        const startX = tvSimWidth / 2;
+        
+        console.log(`📐 TV: ${tvSimWidth.toFixed(1)}x${tvSimHeight.toFixed(1)}px`);
+        console.log(`📐 TV Top from floor: ${tvTopFromFloor}cm`);
+        console.log(`📐 TV Top position: ${tvTopPosition.toFixed(1)}px`);
+        console.log(`📐 StartX: ${startX.toFixed(1)}px`);
+        
+        // Criar overlay da TV
+        const tvOverlay = document.createElement('div');
+        tvOverlay.id = 'simulation-tv-overlay';
+        tvOverlay.className = 'simulation-tv-overlay';
+        
+        // Usar top para posicionar a TV
+        tvOverlay.style.cssText = `
+            position: absolute;
+            width: ${tvSimWidth}px;
+            height: ${tvSimHeight}px;
+            border: 3px solid #2563eb;
+            background-color: rgba(37, 99, 235, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #2563eb;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            top: ${tvTopPosition}px;
+            left: ${startX}px;
+            transform: translateX(-50%);
+            z-index: 10;
+            transition: left 0.3s ease;
+            backdrop-filter: blur(0px) brightness(1.2) contrast(1.1);
+            -webkit-backdrop-filter: blur(0px) brightness(1.2) contrast(1.1);
+            border-radius: 8px;
+            overflow: hidden;
+        `;
+        
+        tvOverlay.innerHTML = `
+            <div class="simulation-tv-content">
+                <span>TV</span>
+                <div class="magnifying-glass-effect"></div>
+            </div>
+        `;
+        bgContainer.appendChild(tvOverlay);
+        
+        // Armazenar posição inicial
+        tvOverlay.dataset.initialLeft = startX.toString();
+        
+        // Inicializar indicador de posição
+        this.updatePositionIndicator(startX, startX, bgWidth);
+        
+        // Adicionar efeito de lupa ativo por padrão
+        tvOverlay.classList.add('magnifying-active');
+        
+        console.log(`✅ TV criada - Top: ${tvTopPosition.toFixed(1)}px, Left: ${startX.toFixed(1)}px`);
+    }
+
+
+    checkBackgroundDimensionsReady() {
+        const width = parseFloat(document.getElementById('background-width-cm')?.value || 0);
+        const height = parseFloat(document.getElementById('background-height-cm')?.value || 0);
+        
+        const uploadGroup = document.getElementById('background-upload-group');
+        const dimensionsAlert = document.getElementById('background-dimensions-alert');
+        
+        console.log('🔍 Verificando dimensões do background:', { width, height });
+        console.log('🔍 Elementos encontrados:', { uploadGroup: !!uploadGroup, dimensionsAlert: !!dimensionsAlert });
+        
+        if (width > 0 && height > 0) {
+            // Dimensões configuradas - habilitar upload
+            if (uploadGroup) {
+                uploadGroup.style.display = 'block';
+                console.log('✅ Upload habilitado - grupo visível');
+            }
+            if (dimensionsAlert) {
+                dimensionsAlert.style.display = 'none';
+                console.log('✅ Alerta oculto');
+            }
+            console.log('✅ Upload de imagem habilitado - dimensões configuradas');
+        } else {
+            // Dimensões não configuradas - desabilitar upload
+            if (uploadGroup) {
+                uploadGroup.style.display = 'none';
+                console.log('❌ Upload desabilitado - grupo oculto');
+            }
+            if (dimensionsAlert) {
+                dimensionsAlert.style.display = 'block';
+                console.log('❌ Alerta visível');
+            }
+            console.log('❌ Upload de imagem desabilitado - configure as dimensões primeiro');
+        }
+    }
+
+    simulateMovement() {
+        console.log('Função de simulação automática removida - use os botões de controle manual');
+    }
+
+    resetSimulation() {
+        console.log('Resetando simulação...');
+        
+        // Resetar posição da TV
+        const tvOverlay = document.getElementById('simulation-tv-overlay');
+        if (tvOverlay) {
+            // Usar posição inicial armazenada ou calcular
+            const initialLeft = tvOverlay.dataset.initialLeft;
+            let centerX;
+            
+            if (initialLeft) {
+                centerX = parseFloat(initialLeft);
+            } else {
+                // Calcular posição central em pixels
+                const bgWidth = this.config.background.widthCm || 300;
+                const maxWidth = 600;
+                const scale = Math.min(maxWidth / bgWidth, 1);
+                const bgSimWidth = Math.min(bgWidth * scale, maxWidth);
+                centerX = bgSimWidth / 2;
+            }
+            
+            tvOverlay.style.left = `${centerX}px`;
+            tvOverlay.style.transform = 'translateX(-50%)';
+            tvOverlay.style.transition = 'left 0.3s ease';
+            console.log(`TV resetada para posição central: ${centerX}px`);
+        }
+    }
+
+    updateURL() {
+        const stepNames = {
+            1: 'projeto',
+            2: 'trilho', 
+            3: 'osc',
+            4: 'background',
+            5: 'zonas',
+            6: 'exportar'
+        };
+        
+        const stepName = stepNames[this.currentStep] || 'projeto';
+        const newURL = `${window.location.pathname}#${stepName}`;
+        
+        if (window.location.href !== newURL) {
+            window.history.pushState({ step: this.currentStep }, '', newURL);
+            console.log(`URL atualizada para: ${newURL}`);
+        }
+    }
+
+    loadStepFromURL() {
+        const hash = window.location.hash.substring(1); // Remove #
+        const stepNames = {
+            'projeto': 1,
+            'trilho': 2,
+            'osc': 3,
+            'background': 4,
+            'zonas': 5,
+            'exportar': 6
+        };
+        
+        const stepFromURL = stepNames[hash];
+        if (stepFromURL && stepFromURL !== this.currentStep) {
+            console.log(`Carregando step ${stepFromURL} da URL: ${hash}`);
+            this.currentStep = stepFromURL;
+        }
+    }
+
+    initializeWizard() {
+        console.log('Inicializando wizard...');
+        
+        this.currentStep = 1;
+        this.totalSteps = 6;
+        this.completedSteps = new Set();
+        
+        // Event listeners para navegação
+        document.getElementById('wizard-prev').addEventListener('click', () => this.previousStep());
+        document.getElementById('wizard-next').addEventListener('click', () => this.nextStep());
+        document.getElementById('wizard-finish').addEventListener('click', () => this.finishWizard());
+        
+        // Event listeners para cliques nos steps
+        document.querySelectorAll('.wizard-step').forEach(step => {
+            step.addEventListener('click', (e) => {
+                const stepNumber = parseInt(e.currentTarget.dataset.step);
+                this.goToStep(stepNumber);
+            });
+        });
+        
+        // Autosave a cada mudança
+        this.setupAutosave();
+        
+        // Carregar estado salvo
+        this.loadWizardState();
+        
+        // Check URL hash for initial step
+        this.loadStepFromURL();
+        
+        // Atualizar UI inicial
+        this.updateWizardUI();
+        
+        // Listen for browser back/forward
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.step) {
+                this.currentStep = event.state.step;
+                this.updateWizardUI();
+            } else {
+                this.loadStepFromURL();
+                this.updateWizardUI();
+            }
+        });
+    }
+
+    setupAutosave() {
+        // Autosave a cada mudança nos campos
+        document.addEventListener('input', () => {
+            this.saveToLocalStorage();
+        });
+        
+        document.addEventListener('change', () => {
+            this.saveToLocalStorage();
+        });
+        
+        // Autosave periódico a cada 30 segundos
+        setInterval(() => {
+            this.saveToLocalStorage();
+        }, 30000);
+    }
+
+    saveToLocalStorage() {
+        try {
+            // Criar uma cópia da config sem o uploadedFile (não pode ser serializado)
+            const configToSave = { ...this.config };
+            if (configToSave.background && configToSave.background.uploadedFile) {
+                // Manter apenas o nome do arquivo, não o objeto File
+                configToSave.background = {
+                    ...configToSave.background,
+                    uploadedFile: null,
+                    hasUploadedFile: true,
+                    imageFile: this.config.background.imageFile || this.config.background.uploadedFile?.name || ''
+                };
+            }
+            
+            const wizardState = {
+                currentStep: this.currentStep,
+                completedSteps: Array.from(this.completedSteps),
+                config: configToSave,
+                zones: this.zones,
+                lastSaved: new Date().toISOString()
+            };
+            
+            localStorage.setItem('trilho-wizard-state', JSON.stringify(wizardState));
+            console.log('Estado do wizard salvo no localStorage');
+        } catch (error) {
+            console.error('Erro ao salvar no localStorage:', error);
+        }
+    }
+
+    loadWizardState() {
+        try {
+            const savedState = localStorage.getItem('trilho-wizard-state');
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                this.currentStep = state.currentStep || 1;
+                this.completedSteps = new Set(state.completedSteps || []);
+                
+                if (state.config) {
+                    this.config = { ...this.config, ...state.config };
+                    
+                    // Se havia um arquivo carregado, limpar a referência (não pode ser restaurada)
+                    if (this.config.background && this.config.background.imageFile) {
+                        this.config.background.uploadedFile = null;
+                        this.config.background.hasUploadedFile = true; // Manter como true para mostrar placeholder específico
+                        console.log('Arquivo de background não pode ser restaurado do localStorage');
+                    }
+                }
+                
+                if (state.zones) {
+                    this.zones = state.zones;
+                }
+                
+                console.log('Estado do wizard carregado do localStorage');
+                console.log('Step atual:', this.currentStep);
+                console.log('Steps completados:', Array.from(this.completedSteps));
+                
+                // Popular campos do formulário com dados carregados
+                this.populateFormFields();
+                
+                // Verificar se background está pronto
+                this.checkBackgroundDimensionsReady();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar do localStorage:', error);
+        }
+    }
+
+    goToStep(stepNumber) {
+        if (stepNumber < 1 || stepNumber > this.totalSteps) return;
+        
+        // Validar se pode ir para o step
+        if (stepNumber > 1 && !this.completedSteps.has(stepNumber - 1)) {
+            this.showToast('Complete a etapa anterior primeiro', 'warning');
+            return;
+        }
+        
+        this.currentStep = stepNumber;
+        this.updateWizardUI();
+        this.updateURL();
+        this.saveToLocalStorage();
+    }
+
+    nextStep() {
+        // Validar etapa atual
+        if (!this.validateCurrentStep()) {
+            this.showToast('Complete os campos obrigatórios antes de continuar', 'warning');
+            return;
+        }
+        
+        // Marcar etapa como completa
+        this.completedSteps.add(this.currentStep);
+        
+        // Ir para próxima etapa
+        if (this.currentStep < this.totalSteps) {
+        this.currentStep++;
+        this.updateWizardUI();
+        this.updateURL();
+        this.saveToLocalStorage();
+        }
+    }
+
+    previousStep() {
+        if (this.currentStep > 1) {
+        this.currentStep--;
+        this.updateWizardUI();
+        this.updateURL();
+        this.saveToLocalStorage();
+        }
+    }
+
+    finishWizard() {
+        // Validar todas as etapas
+        if (!this.validateAllSteps()) {
+            this.showToast('Complete todas as etapas antes de exportar', 'warning');
+            return;
+        }
+        
+        // Marcar todas como completas
+        for (let i = 1; i <= this.totalSteps; i++) {
+            this.completedSteps.add(i);
+        }
+        
+        this.updateWizardUI();
+        this.saveToLocalStorage();
+        
+        // Exportar configuração
+        this.exportToUnity();
+    }
+
+    validateCurrentStep() {
+        switch (this.currentStep) {
+            case 1: // Projeto
+                return this.validateProjectInfo();
+            case 2: // Trilho
+                return this.validateTrilhoConfig();
+            case 3: // OSC
+                return this.validateOSCConfig();
+            case 4: // Background
+                return this.validateBackgroundConfig();
+            case 5: // Zonas
+                return this.validateZonesConfig();
+            case 6: // Exportar
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    validateAllSteps() {
+        for (let i = 1; i <= this.totalSteps; i++) {
+            this.currentStep = i;
+            if (!this.validateCurrentStep()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    updateWizardUI() {
+        // Atualizar steps
+        document.querySelectorAll('.wizard-step').forEach((step, index) => {
+            const stepNumber = index + 1;
+            step.classList.remove('active', 'completed');
+            
+            if (stepNumber === this.currentStep) {
+                step.classList.add('active');
+            } else if (this.completedSteps.has(stepNumber)) {
+                step.classList.add('completed');
+            }
+        });
+        
+        // Atualizar conteúdo das seções
+        document.querySelectorAll('.wizard-step-content').forEach((content, index) => {
+            const stepNumber = index + 1;
+            content.classList.remove('active', 'completed');
+            
+            if (stepNumber === this.currentStep) {
+                content.classList.add('active');
+            } else if (this.completedSteps.has(stepNumber)) {
+                content.classList.add('completed');
+            }
+        });
+        
+        // Chamar showSection para a seção ativa
+        const sectionNames = ['general', 'trilho', 'osc', 'background', 'zones', 'export'];
+        const activeSectionName = sectionNames[this.currentStep - 1];
+        if (activeSectionName) {
+            console.log(`🎯 Ativando seção via wizard: ${activeSectionName}`);
+            this.showSection(activeSectionName);
+        }
+        
+        // Atualizar botões de navegação
+        const prevBtn = document.getElementById('wizard-prev');
+        const nextBtn = document.getElementById('wizard-next');
+        const finishBtn = document.getElementById('wizard-finish');
+        
+        if (prevBtn) {
+            prevBtn.disabled = this.currentStep === 1;
+        }
+        
+        if (nextBtn) {
+            nextBtn.style.display = this.currentStep < this.totalSteps ? 'block' : 'none';
+        }
+        
+        if (finishBtn) {
+            finishBtn.style.display = this.currentStep === this.totalSteps ? 'block' : 'none';
+        }
+        
+        // Atualizar título da página
+        const stepTitles = ['Projeto', 'Trilho', 'OSC', 'Background', 'Zonas', 'Exportar'];
+        document.title = `Trilho Configurador - ${stepTitles[this.currentStep - 1]}`;
+        
+        // Atualizar URL se necessário
+        this.updateURL();
     }
 
     initializeMobileMenu() {
@@ -1193,11 +3101,7 @@ class TrilhoConfigurator {
                 console.log('movementSensitivity mapeado:', this.config.trilho.movementSensitivity);
             }
             
-            // Load camera settings
-            if (jsonConfig.camera) {
-                this.config.camera = { ...this.config.camera, ...jsonConfig.camera };
-                console.log('Configuração da câmera carregada:', this.config.camera);
-            } else {
+ else {
                 console.log('Nenhuma configuração de câmera encontrada no JSON');
             }
             
@@ -1346,9 +3250,6 @@ class TrilhoConfigurator {
             config.trilho = { ...config.trilho, ...v3Config.trilho };
         }
         
-        if (v3Config.camera) {
-            config.camera = { ...config.camera, ...v3Config.camera };
-        }
         
         if (v3Config.osc) {
             config.osc = { ...config.osc, ...v3Config.osc };
@@ -1445,6 +3346,9 @@ class TrilhoConfigurator {
             // Atualizar timestamp de última modificação
             this.updateLastModified();
             
+            // Mostrar seção de sistema após salvar
+            this.showSystemInfo();
+            
         } catch (error) {
             console.error('Erro ao salvar configuração:', error);
             this.showToast('Erro ao salvar configuração', 'error');
@@ -1474,7 +3378,6 @@ class TrilhoConfigurator {
         const v3Config = {
             project: { ...this.config.project },
             trilho: { ...this.config.trilho },
-            camera: { ...this.config.camera },
             osc: { ...this.config.osc },
             background: { ...this.config.background },
             zones: this.zones.map(zone => ({
@@ -1691,8 +3594,25 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
         const projectDescription = document.getElementById('project-description');
         if (projectDescription) projectDescription.value = this.config.project.description || '';
         
-        const projectVersion = document.getElementById('project-version');
-        if (projectVersion) projectVersion.value = this.config.project.version || '';
+        // Event fields
+        const eventLocation = document.getElementById('event-location');
+        if (eventLocation) eventLocation.value = this.config.project.eventLocation || '';
+        
+        const eventDate = document.getElementById('event-date');
+        if (eventDate) eventDate.value = this.config.project.eventDate || '';
+        
+        const clientName = document.getElementById('client-name');
+        if (clientName) clientName.value = this.config.project.clientName || '';
+        
+        const technicalResponsible = document.getElementById('technical-responsible');
+        if (technicalResponsible) technicalResponsible.value = this.config.project.technicalResponsible || '';
+
+        // Creation and modification dates
+        const creationDate = document.getElementById('creation-date');
+        if (creationDate) creationDate.value = this.config.creationDate ? new Date(this.config.creationDate).toISOString().slice(0, 16) : '';
+        
+        const lastModified = document.getElementById('last-modified');
+        if (lastModified) lastModified.value = this.config.lastModified ? new Date(this.config.lastModified).toISOString().slice(0, 16) : '';
 
         // Trilho fields
         console.log('=== PREENCHENDO CAMPOS TRILHO ===');
@@ -1700,10 +3620,10 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
         const trilhoFields = [
             { sliderId: 'physical-min-cm-slider', inputId: 'physical-min-cm', value: this.config.trilho.physicalMinCm },
             { sliderId: 'physical-max-cm-slider', inputId: 'physical-max-cm', value: this.config.trilho.physicalMaxCm },
-            { sliderId: 'unity-min-position-slider', inputId: 'unity-min-position', value: this.config.trilho.unityMinPosition },
-            { sliderId: 'unity-max-position-slider', inputId: 'unity-max-position', value: this.config.trilho.unityMaxPosition },
-            { sliderId: 'screen-width-cm-slider', inputId: 'screen-width-cm', value: this.config.trilho.screenWidthCm },
-            { sliderId: 'movement-sensitivity-slider', inputId: 'movement-sensitivity', value: this.config.trilho.movementSensitivity }
+            { sliderId: 'tv-height-from-floor-slider', inputId: 'tv-height-from-floor', value: this.config.trilho.tvHeightFromFloor },
+            { sliderId: 'movement-sensitivity-slider', inputId: 'movement-sensitivity', value: this.config.trilho.movementSensitivity },
+            { sliderId: 'camera-smoothing-slider', inputId: 'camera-smoothing', value: this.config.trilho.cameraSmoothing },
+            { sliderId: 'pre-activation-range-slider', inputId: 'pre-activation-range', value: this.config.trilho.preActivationRange }
         ];
 
         trilhoFields.forEach(({ sliderId, inputId, value }) => {
@@ -1720,13 +3640,22 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
             }
         });
 
-        // Camera fields
-        console.log('=== PREENCHENDO CAMPOS CÂMERA ===');
-        const cameraSmoothingSlider = document.getElementById('camera-smoothing-slider');
-        const cameraSmoothingInput = document.getElementById('camera-smoothing');
-        console.log('Camera smoothing:', { value: this.config.camera.cameraSmoothing, slider: !!cameraSmoothingSlider, input: !!cameraSmoothingInput });
-        if (cameraSmoothingSlider) cameraSmoothingSlider.value = this.config.camera.cameraSmoothing;
-        if (cameraSmoothingInput) cameraSmoothingInput.value = this.config.camera.cameraSmoothing;
+        // TV fields
+        console.log('=== PREENCHENDO CAMPOS TV ===');
+        const tvModel = document.getElementById('tv-model');
+        const tvOrientation = document.getElementById('tv-orientation');
+        const screenResolution = document.getElementById('screen-resolution');
+        
+        if (tvModel) tvModel.value = this.config.tv.model || '42';
+        if (tvOrientation) tvOrientation.value = this.config.tv.orientation || 'portrait';
+        if (screenResolution) screenResolution.value = this.config.tv.resolution || '1920x1080';
+        
+        console.log('TV fields definidos:', {
+            model: this.config.tv.model,
+            orientation: this.config.tv.orientation,
+            resolution: this.config.tv.resolution
+        });
+
 
         // OSC fields
         console.log('=== PREENCHENDO CAMPOS OSC ===');
@@ -1742,8 +3671,33 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
         const backgroundEnabled = document.getElementById('background-enabled');
         if (backgroundEnabled) backgroundEnabled.checked = this.config.background.enabled;
         
-        const backgroundImageFile = document.getElementById('background-image-file');
-        if (backgroundImageFile) backgroundImageFile.value = this.config.background.imageFile || '';
+        const backgroundFileName = document.getElementById('background-file-name');
+        if (backgroundFileName) {
+            if (this.config.background.hasUploadedFile && !this.config.background.uploadedFile) {
+                backgroundFileName.textContent = `${this.config.background.imageFile} (recarregar)`;
+            } else {
+                backgroundFileName.textContent = this.config.background.imageFile || 'Nenhum arquivo selecionado';
+            }
+        }
+        
+        // Background dimensions
+        const backgroundWidth = document.getElementById('background-width-cm');
+        const backgroundHeight = document.getElementById('background-height-cm');
+        if (backgroundWidth) {
+            const widthValue = this.config.background.widthCm || 300;
+            backgroundWidth.value = parseFloat(widthValue.toFixed(1));
+        }
+        if (backgroundHeight) {
+            const heightValue = this.config.background.heightCm || 200;
+            backgroundHeight.value = parseFloat(heightValue.toFixed(1));
+        }
+        
+        console.log('Background fields definidos:', {
+            enabled: this.config.background.enabled,
+            imageFile: this.config.background.imageFile,
+            widthCm: this.config.background.widthCm,
+            heightCm: this.config.background.heightCm
+        });
         
         console.log('=== CAMPOS POPULADOS ===');
     }
@@ -1859,7 +3813,7 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
         // Verificar se foi adicionado corretamente
         const cloneAdded = document.body.contains(stickyActions);
         console.log('✅ Sticky clone criado:', stickyActions);
-        console.log('✅ Estilos aplicados:', stickyStyles);
+        console.log('✅ Estilos aplicados via CSS');
         console.log('📍 Clone adicionado ao DOM:', cloneAdded);
         
         // Verificar se está visível
@@ -2006,9 +3960,6 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
                 case 'trilho':
                     this.config.trilho = { ...defaultConfig.trilho };
                     break;
-                case 'camera':
-                    this.config.camera = { ...defaultConfig.camera };
-                    break;
                 case 'osc':
                     this.config.osc = { ...defaultConfig.osc };
                     break;
@@ -2033,10 +3984,6 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
                 case 'trilho':
                     this.config.trilho = { ...this.originalConfig.trilho };
                     console.log('Trilho resetado para valores originais:', this.config.trilho);
-                    break;
-                case 'camera':
-                    this.config.camera = { ...this.originalConfig.camera };
-                    console.log('Câmera resetada para valores originais:', this.config.camera);
                     break;
                 case 'osc':
                     this.config.osc = { ...this.originalConfig.osc };
@@ -2091,6 +4038,16 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
         
         console.log('Atualizando campos do formulário...');
         this.populateFormFields();
+        
+        // Para background, atualizar simulação visual
+        if (section === 'background') {
+            console.log('Atualizando simulação visual após reset do background...');
+            setTimeout(() => {
+                this.updateSimulationVisual();
+                this.checkBackgroundDimensionsReady();
+                console.log('Simulação visual atualizada após reset');
+            }, 100);
+        }
         
         // Para zonas, também re-renderizar e atualizar minimapa
         if (section === 'zones') {
@@ -2238,9 +4195,499 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
             console.error('Container de configurações específicas não encontrado');
         }
     }
+
+    // ===== NOVAS FUNCIONALIDADES =====
+
+    initializeTVCalculations() {
+        console.log('Inicializando cálculos de TV...');
+        
+        // TV model change
+        const tvModelSelect = document.getElementById('tv-model');
+        const tvOrientationSelect = document.getElementById('tv-orientation');
+        
+        console.log('Elementos da TV encontrados:', {
+            tvModelSelect: !!tvModelSelect,
+            tvOrientationSelect: !!tvOrientationSelect
+        });
+        
+        if (tvModelSelect) {
+            tvModelSelect.addEventListener('change', (e) => {
+                console.log('Modelo da TV alterado');
+                this.config.tv.model = e.target.value;
+                this.calculateTVDimensions();
+                this.updateSimulationVisual();
+            });
+        }
+        
+        if (tvOrientationSelect) {
+            tvOrientationSelect.addEventListener('change', (e) => {
+                console.log('Orientação da TV alterada');
+                this.config.tv.orientation = e.target.value;
+                this.calculateTVDimensions();
+                this.updateSimulationVisual();
+            });
+        }
+        
+        // Calculate initial dimensions
+        console.log('Calculando dimensões iniciais...');
+        this.calculateTVDimensions();
+        
+        // Atualizar simulação visual inicial
+        setTimeout(() => {
+            this.updateSimulationVisual();
+            this.checkBackgroundDimensionsReady();
+        }, 500);
+        
+        // Forçar atualização adicional após carregamento completo
+        setTimeout(() => {
+            this.updateSimulationVisual();
+            this.checkBackgroundDimensionsReady();
+            console.log('Simulação visual forçada após carregamento completo');
+        }, 1000);
+        
+        // Forçar atualização final após tudo estar carregado
+        setTimeout(() => {
+            this.updateSimulationVisual();
+            console.log('Simulação visual final após carregamento completo');
+        }, 2000);
+    }
+
+    calculateTVDimensions() {
+        const tvModelElement = document.getElementById('tv-model');
+        const orientationElement = document.getElementById('tv-orientation');
+        
+        console.log('Elementos encontrados:', {
+            tvModelElement: !!tvModelElement,
+            orientationElement: !!orientationElement
+        });
+        
+        const tvModel = tvModelElement?.value || '42';
+        const orientation = orientationElement?.value || 'portrait';
+        
+        console.log(`Calculando dimensões da TV: Modelo ${tvModel}" ${orientation}`);
+        
+        // Medidas reais das TVs
+        const tvSpecs = {
+            '42': { width: 93.5, height: 52.5 }, // TV 42" - medidas reais da tela
+            '55': { width: 121, height: 68.5 }   // TV 55" - medidas reais da tela
+        };
+        
+        let widthCm, heightCm;
+        
+        if (tvSpecs[tvModel]) {
+            if (orientation === 'portrait') {
+                // Vertical: altura é a largura da TV, largura é a altura da TV
+                widthCm = tvSpecs[tvModel].height;   // 52.5cm ou 68.5cm
+                heightCm = tvSpecs[tvModel].width;   // 93.5cm ou 121cm
+            } else {
+                // Horizontal: largura é a largura da TV, altura é a altura da TV
+                widthCm = tvSpecs[tvModel].width;    // 93.5cm ou 121cm
+                heightCm = tvSpecs[tvModel].height;  // 52.5cm ou 68.5cm
+            }
+            
+            console.log(`Dimensões calculadas: ${widthCm}cm x ${heightCm}cm (${orientation})`);
+            
+            // Atualizar campos
+            const widthInput = document.getElementById('screen-width-cm');
+            const heightInput = document.getElementById('screen-height-cm');
+            
+            console.log('Campos encontrados:', {
+                widthInput: !!widthInput,
+                heightInput: !!heightInput
+            });
+            
+            if (widthInput) {
+                widthInput.value = widthCm.toFixed(1);
+                console.log(`Largura definida: ${widthCm.toFixed(1)}cm`);
+            }
+            if (heightInput) {
+                heightInput.value = heightCm.toFixed(1);
+                console.log(`Altura definida: ${heightCm.toFixed(1)}cm`);
+            }
+            
+            // Atualizar configuração
+            this.updateConfigValue('trilho.screenWidthCm', widthCm);
+            this.updateConfigValue('trilho.screenHeightCm', heightCm);
+        } else {
+            console.error(`Modelo de TV não encontrado: ${tvModel}`);
+        }
+    }
+
+    initializeValidation() {
+        console.log('Inicializando sistema de validação...');
+        
+        const validateBtn = document.getElementById('validate-config-btn');
+        if (validateBtn) {
+            validateBtn.addEventListener('click', () => {
+                this.isManualValidation = true;
+                this.validateConfiguration();
+                this.isManualValidation = false;
+            });
+        }
+        
+        // Auto-validate on form changes
+        document.addEventListener('input', () => this.autoValidate());
+    }
+
+    validateConfiguration() {
+        console.log('Validando configuração...');
+        
+        const validation = {
+            project: this.validateProjectInfo(),
+            trilho: this.validateTrilhoConfig(),
+            background: this.validateBackgroundConfig(),
+            zones: this.validateZonesConfig(),
+            osc: this.validateOSCConfig()
+        };
+        
+        this.updateValidationUI(validation);
+        
+        const allValid = Object.values(validation).every(v => v.valid);
+        
+        // Só mostrar toast se for validação manual (não automática)
+        if (this.isManualValidation) {
+            if (allValid) {
+                this.showToast('Configuração válida! Pronto para exportar.', 'success');
+            } else {
+                this.showToast('Configuração possui erros. Verifique os campos destacados.', 'warning');
+            }
+        }
+        
+        return allValid;
+    }
+
+    validateProjectInfo() {
+        const name = document.getElementById('project-name')?.value?.trim();
+        const location = document.getElementById('event-location')?.value?.trim();
+        const client = document.getElementById('client-name')?.value?.trim();
+        
+        return {
+            valid: !!(name && location && client),
+            errors: [
+                !name && 'Nome do projeto é obrigatório',
+                !location && 'Local do evento é obrigatório',
+                !client && 'Cliente é obrigatório'
+            ].filter(Boolean)
+        };
+    }
+
+    validateTrilhoConfig() {
+        const maxCm = parseFloat(document.getElementById('physical-max-cm')?.value || 0);
+        const screenWidth = parseFloat(document.getElementById('screen-width-cm')?.value || 0);
+        
+        return {
+            valid: maxCm > 0 && screenWidth > 0,
+            errors: [
+                maxCm <= 0 && 'Comprimento do trilho deve ser maior que 0',
+                screenWidth <= 0 && 'Largura da TV deve ser maior que 0'
+            ].filter(Boolean)
+        };
+    }
+
+    validateBackgroundConfig() {
+        const enabled = document.getElementById('background-enabled')?.checked;
+        const file = document.getElementById('background-image-upload')?.files[0];
+        
+        return {
+            valid: !enabled || !!file,
+            errors: [
+                enabled && !file && 'Arquivo de background é obrigatório quando ativado'
+            ].filter(Boolean)
+        };
+    }
+
+    validateZonesConfig() {
+        const hasZones = this.zones.length > 0;
+        const validZones = this.zones.every(zone => 
+            zone.name && zone.positionCm >= 0 && zone.positionCm <= this.config.trilho.physicalMaxCm
+        );
+        
+        return {
+            valid: hasZones && validZones,
+            errors: [
+                !hasZones && 'Pelo menos uma zona deve ser criada',
+                !validZones && 'Todas as zonas devem ter nome e posição válida'
+            ].filter(Boolean)
+        };
+    }
+
+    validateOSCConfig() {
+        const port = parseInt(document.getElementById('osc-port')?.value || 0);
+        const address = document.getElementById('osc-address')?.value?.trim();
+        
+        return {
+            valid: port > 1024 && port < 65536 && !!address,
+            errors: [
+                (port <= 1024 || port >= 65536) && 'Porta OSC deve estar entre 1025 e 65535',
+                !address && 'Endereço OSC é obrigatório'
+            ].filter(Boolean)
+        };
+    }
+
+    updateValidationUI(validation) {
+        const statusContainer = document.getElementById('validation-status');
+        if (!statusContainer) return;
+        
+        const items = statusContainer.querySelectorAll('.validation-item');
+        const sections = ['project', 'trilho', 'background', 'zones', 'osc'];
+        
+        sections.forEach((section, index) => {
+            const item = items[index];
+            if (!item) return;
+            
+            const icon = item.querySelector('i');
+            const result = validation[section];
+            
+            if (result.valid) {
+                icon.className = 'fas fa-check-circle validation-success';
+                item.classList.remove('validation-error');
+                item.classList.add('validation-success');
+            } else {
+                icon.className = 'fas fa-times-circle validation-error';
+                item.classList.remove('validation-success');
+                item.classList.add('validation-error');
+            }
+        });
+        
+        // Update summary
+        const summary = document.getElementById('validation-summary');
+        if (summary) {
+            const allValid = Object.values(validation).every(v => v.valid);
+            const errorCount = Object.values(validation).reduce((count, v) => count + v.errors.length, 0);
+            
+            if (allValid) {
+                summary.innerHTML = '<p style="color: #4CAF50;">✅ Configuração válida! Pronto para exportar.</p>';
+            } else {
+                summary.innerHTML = `<p style="color: #f44336;">❌ ${errorCount} erro(s) encontrado(s). Verifique os campos destacados.</p>`;
+            }
+        }
+    }
+
+    autoValidate() {
+        // Debounce validation to avoid excessive calls
+        clearTimeout(this.validationTimeout);
+        this.validationTimeout = setTimeout(() => {
+            // Só validar se o usuário já interagiu com o formulário
+            if (this.hasUserInteracted) {
+                this.validateConfiguration();
+            }
+        }, 500);
+    }
+
+    initializeExport() {
+        console.log('Inicializando funcionalidades de exportação...');
+        
+        // Export buttons
+        const exportUnityBtn = document.getElementById('export-unity-btn');
+        const exportJsonBtn = document.getElementById('export-json-btn');
+        const exportBackupBtn = document.getElementById('export-backup-btn');
+        
+        if (exportUnityBtn) {
+            exportUnityBtn.addEventListener('click', () => this.exportToUnity());
+        }
+        
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', () => this.exportJSON());
+        }
+        
+        if (exportBackupBtn) {
+            exportBackupBtn.addEventListener('click', () => this.exportBackup());
+        }
+        
+        // Update package info
+        this.updatePackageInfo();
+    }
+
+    async exportToUnity() {
+        console.log('Exportando para Unity...');
+        
+        // Validate before export
+        if (!this.validateConfiguration()) {
+            this.showToast('Corrija os erros antes de exportar', 'error');
+            return;
+        }
+        
+        try {
+            const configData = this.buildExportConfig();
+            const mediaFiles = this.collectMediaFiles();
+            
+            if (mediaFiles.length > 0) {
+                await this.createUnityPackage(configData, mediaFiles);
+                this.showToast('Pacote Unity criado com sucesso!', 'success');
+            } else {
+                this.downloadJSON(configData, 'trilho_config.json');
+                this.showToast('Configuração JSON salva!', 'success');
+            }
+            
+            this.updateLastExport();
+            
+        } catch (error) {
+            console.error('Erro ao exportar para Unity:', error);
+            this.showToast('Erro ao exportar: ' + error.message, 'error');
+        }
+    }
+
+    exportJSON() {
+        console.log('Exportando JSON...');
+        
+        try {
+            const configData = this.buildExportConfig();
+            const filename = `trilho_config_${new Date().toISOString().split('T')[0]}.json`;
+            this.downloadJSON(configData, filename);
+            this.showToast('JSON exportado com sucesso!', 'success');
+            this.updateLastExport();
+        } catch (error) {
+            console.error('Erro ao exportar JSON:', error);
+            this.showToast('Erro ao exportar JSON: ' + error.message, 'error');
+        }
+    }
+
+    exportBackup() {
+        console.log('Criando backup...');
+        
+        try {
+            const configData = this.buildExportConfig();
+            const mediaFiles = this.collectMediaFiles();
+            
+            const backupData = {
+                config: configData,
+                mediaFiles: mediaFiles.map(f => ({
+                    name: f.name,
+                    type: f.type,
+                    size: f.file.size
+                })),
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const filename = `trilho_backup_${new Date().toISOString().split('T')[0]}.json`;
+            this.downloadJSON(backupData, filename);
+            this.showToast('Backup criado com sucesso!', 'success');
+            this.updateLastExport();
+        } catch (error) {
+            console.error('Erro ao criar backup:', error);
+            this.showToast('Erro ao criar backup: ' + error.message, 'error');
+        }
+    }
+
+    buildExportConfig() {
+        return {
+            configName: this.config.project.name,
+            description: this.config.project.description,
+            version: this.config.project.version,
+            lastModified: this.config.lastModified,
+            creationDate: this.config.creationDate,
+            project: this.config.project,
+            trilho: this.config.trilho,
+            tv: this.config.tv,
+            osc: this.config.osc,
+            background: this.config.background,
+            contentZones: this.zones.map(zone => ({
+                id: zone.id,
+                name: zone.name,
+                description: zone.description || '',
+                positionCm: zone.positionCm,
+                paddingCm: zone.paddingCm || 20,
+                enterPaddingCm: zone.enterPaddingCm || 10,
+                exitPaddingCm: zone.exitPaddingCm || 10,
+                contentType: zone.type,
+                contentFileName: zone.imageSettings?.imageFile || zone.videoSettings?.videoFile || '',
+                contentPath: zone.imageSettings?.imageFile || zone.videoSettings?.videoFile || '',
+                placeContentAtWorldX: true,
+                contentOffsetCm: 0,
+                keepUpdatingWhileActive: false,
+                reference: 0,
+                fadeInSeconds: zone.fadeInSeconds || 1.0,
+                fadeOutSeconds: zone.fadeOutSeconds || 0.5,
+                imageSettings: zone.imageSettings || {},
+                videoSettings: zone.videoSettings || {},
+                textSettings: zone.textSettings || {},
+                appSettings: zone.appSettings || {}
+            }))
+        };
+    }
+
+    updatePackageInfo() {
+        const packageName = document.getElementById('package-name');
+        const packageSize = document.getElementById('package-size');
+        const packageFiles = document.getElementById('package-files');
+        
+        if (packageName) {
+            const date = new Date().toISOString().split('T')[0];
+            packageName.textContent = `trilho-config-${date}`;
+        }
+        
+        if (packageFiles) {
+            const fileCount = this.zones.length + (this.config.background.uploadedFile ? 1 : 0);
+            packageFiles.textContent = `${fileCount} arquivo(s)`;
+        }
+        
+        if (packageSize) {
+            // Estimate size (rough calculation)
+            const estimatedSize = this.estimatePackageSize();
+            packageSize.textContent = estimatedSize;
+        }
+    }
+
+    estimatePackageSize() {
+        let totalSize = 0;
+        
+        // JSON size (rough estimate)
+        totalSize += JSON.stringify(this.buildExportConfig()).length;
+        
+        // Media files size
+        this.zones.forEach(zone => {
+            if (zone.imageSettings?.uploadedFile) {
+                totalSize += zone.imageSettings.uploadedFile.size;
+            }
+            if (zone.videoSettings?.uploadedFile) {
+                totalSize += zone.videoSettings.uploadedFile.size;
+            }
+        });
+        
+        if (this.config.background.uploadedFile) {
+            totalSize += this.config.background.uploadedFile.size;
+        }
+        
+        // Convert to human readable
+        if (totalSize < 1024) return `${totalSize} B`;
+        if (totalSize < 1024 * 1024) return `${(totalSize / 1024).toFixed(1)} KB`;
+        return `${(totalSize / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    updateLastExport() {
+        const lastExport = document.getElementById('last-export');
+        if (lastExport) {
+            lastExport.textContent = new Date().toLocaleString('pt-BR');
+        }
+    }
+
+    showSystemInfo() {
+        const systemSection = document.getElementById('system-info-section');
+        if (systemSection) {
+            systemSection.style.display = 'block';
+            
+            // Atualizar datas
+            const creationDate = document.getElementById('creation-date');
+            const lastModified = document.getElementById('last-modified');
+            
+            if (creationDate) {
+                creationDate.value = this.config.creationDate ? 
+                    new Date(this.config.creationDate).toLocaleString('pt-BR') : 
+                    'Não definida';
+            }
+            
+            if (lastModified) {
+                lastModified.value = this.config.lastModified ? 
+                    new Date(this.config.lastModified).toLocaleString('pt-BR') : 
+                    'Não definida';
+            }
+        }
+    }
 }
+
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new TrilhoConfigurator();
+    window.trilhoConfigurator = new TrilhoConfigurator();
 });
