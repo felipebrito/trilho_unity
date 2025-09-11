@@ -2650,12 +2650,214 @@ body {
 .zones-background-container {
     position: relative;
     width: 100%;
+    max-width: 100%;
     height: 300px;
     background: var(--bg-tertiary);
     border: 2px solid var(--border-color);
     border-radius: var(--radius-sm);
     overflow: hidden;
     margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Controlar overflow da seção de zonas */
+#zones-section {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+#zones-section .content {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Modal de Configuração de Zona */
+.zone-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.zone-modal-content {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.zone-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    border-radius: 12px 12px 0 0;
+}
+
+.zone-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.zone-modal-close {
+    background: var(--bg-tertiary);
+    border: none;
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    font-weight: bold;
+}
+
+.zone-modal-close:hover {
+    background: var(--error-color);
+    color: white;
+    transform: scale(1.1);
+}
+
+.zone-modal-body {
+    padding: 2rem;
+}
+
+.zone-modal-body .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.zone-modal-body .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.zone-modal-body .form-group input,
+.zone-modal-body .form-group select,
+.zone-modal-body .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.zone-modal-body .form-group input:focus,
+.zone-modal-body .form-group select:focus,
+.zone-modal-body .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.zone-modal-body .form-group input[type="file"] {
+    padding: 0.5rem;
+    border: 2px dashed var(--border-color);
+    background: var(--bg-secondary);
+    cursor: pointer;
+}
+
+.zone-modal-body .form-group input[type="file"]:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-tertiary);
+}
+
+.zone-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    border-radius: 0 0 12px 12px;
+}
+
+.zone-modal-footer .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    min-width: 100px;
+}
+
+.zone-modal-footer .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.zone-modal-footer .btn-secondary:hover {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.zone-modal-footer .btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.zone-modal-footer .btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.zone-image-preview,
+.zone-video-preview {
+    margin-top: 0.75rem;
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.zone-image-preview img,
+.zone-video-preview video {
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    max-width: 100%;
+    height: auto;
 }
 
 .zones-background-image {
@@ -2757,13 +2959,12 @@ body {
     position: absolute;
     top: 50%; /* Posicionado no centro vertical da imagem */
     transform: translateY(-50%); /* Centralizado verticalmente */
-    width: 60px;
-    height: 80px;
+    /* Tamanho será definido dinamicamente via JavaScript */
     background: var(--primary-color);
     border: 2px solid #ffffff;
     border-radius: 8px;
     cursor: pointer;
-    z-index: 50; /* Aumentado para aparecer acima do background */
+    z-index: 10; /* Z-index baixo para ficar atrás da TV */
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
     pointer-events: all;
@@ -2775,12 +2976,13 @@ body {
     font-weight: 600;
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
 }
 
 .zones-background-zone:hover {
     transform: translateY(-50%) scale(1.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    z-index: 60; /* Aumentado para hover */
+    z-index: 20; /* Z-index baixo para hover, ainda atrás da TV */
 }
 
 .zones-background-zone.hovered {
@@ -2802,6 +3004,222 @@ body {
     object-fit: cover;
     object-position: center;
     border-radius: 8px;
+    opacity: 0.7; /* Transparência leve */
+    transition: opacity 0.3s ease;
+}
+
+/* Quando a TV está sobre o conteúdo, mostrar com opacidade total */
+.simulation-tv-overlay:hover ~ .zones-trilho-zones .zones-zone-image,
+.simulation-tv-overlay:hover ~ .zones-trilho-zones .zones-zone-video {
+    opacity: 1;
+}
+
+/* Estilos para vídeo das zonas */
+.zones-zone-video-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.zones-zone-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 8px;
+    background: #000;
+    display: block;
+    opacity: 0.7; /* Transparência leve */
+    transition: opacity 0.3s ease;
+}
+
+/* Estilos para texto das zonas */
+.zones-zone-text-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+}
+
+.zones-zone-text-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    word-wrap: break-word;
+    overflow: hidden;
+    color: white;
+}
+
+/* Overlay para informações das zonas */
+.zones-zone-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    padding: 4px 8px;
+    font-size: 0.6rem;
+    text-align: center;
+    border-radius: 0 0 6px 6px;
+}
+
+.zones-zone-overlay .zones-zone-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.zones-zone-overlay .zones-zone-position {
+    font-size: 0.5rem;
+    opacity: 0.8;
+}
+
+/* TV Figurativa com Controles - Mesmo estilo da aba BACKGROUND */
+.simulation-tv-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 3px solid var(--primary-color);
+    background: rgba(37, 99, 235, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    z-index: 100; /* Z-index muito alto para ficar sobre o conteúdo */
+    backdrop-filter: blur(0px) brightness(1.1) contrast(1.1) saturate(1.1);
+    -webkit-backdrop-filter: blur(0px) brightness(1.1) contrast(1.1) saturate(1.1);
+    box-shadow: 
+        0 0 15px rgba(37, 99, 235, 0.2),
+        inset 0 0 15px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    cursor: grab;
+}
+
+.simulation-tv-content {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-align: center;
+    font-size: 14px;
+    position: relative;
+    z-index: 3;
+}
+
+/* Efeitos de lupa como na aba BACKGROUND */
+.simulation-tv-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 30%, 
+        transparent 70%);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.simulation-tv-overlay::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 0.8) 0%, 
+        rgba(255, 255, 255, 0.4) 50%, 
+        transparent 100%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 2;
+    animation: pulse 2s infinite;
+}
+
+/* Efeito de lupa ativo */
+.simulation-tv-overlay.magnifying-active {
+    backdrop-filter: blur(0px) brightness(1.3) contrast(1.2) saturate(1.1);
+    -webkit-backdrop-filter: blur(0px) brightness(1.3) contrast(1.2) saturate(1.1);
+    box-shadow: 
+        0 0 20px rgba(37, 99, 235, 0.3),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+.tv-screen {
+    flex: 1;
+    background: #000;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.tv-screen-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.tv-controls {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px;
+    background: linear-gradient(145deg, #333, #222);
+    border-top: 1px solid #555;
+    gap: 4px;
+}
+
+.tv-control-btn {
+    background: linear-gradient(145deg, #555, #333);
+    border: 1px solid #666;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    padding: 6px 8px;
+    font-size: 0.7rem;
+    transition: all 0.2s ease;
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tv-control-btn:hover {
+    background: linear-gradient(145deg, #666, #444);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.tv-control-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.tv-control-icon {
+    font-size: 0.8rem;
+    line-height: 1;
 }
 
 .zones-zone-overlay {
@@ -2979,6 +3397,114 @@ body {
     background: var(--border-color);
 }
 
+/* Storage Management Styles */
+.storage-warning {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 16px 0;
+}
+
+.storage-warning small {
+    color: #dc2626;
+    font-weight: 500;
+}
+
+.storage-tip {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 16px 0;
+}
+
+.storage-tip p {
+    color: #0369a1;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.storage-info {
+    margin: 16px 0;
+}
+
+.storage-options {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+}
+
+.storage-options .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+.storage-summary {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    border: 1px solid var(--border-color);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success-color), var(--warning-color), var(--error-color));
+    transition: width 0.3s ease;
+}
+
+.storage-items {
+    margin-top: 16px;
+}
+
+.items-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.item-row:last-child {
+    border-bottom: none;
+}
+
+.item-key {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item-size {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-left: 12px;
+}
+
 /* Responsive para visualização de zonas */
 @media (max-width: 768px) {
     .zones-background-container {
@@ -3000,5 +3526,13 @@ body {
         bottom: 10px;
         left: 10px;
         right: 10px;
+    }
+    
+    .storage-options {
+        flex-direction: column;
+    }
+    
+    .storage-options .btn {
+        width: 100%;
     }
 }

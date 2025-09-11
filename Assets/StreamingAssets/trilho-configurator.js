@@ -32,6 +32,28 @@ class TrilhoConfigurator {
             setTimeout(() => this.updateTrilhoMinimap(), 1000);
         }
         
+        // Verificar uso do localStorage
+        this.checkLocalStorageUsage();
+        
+        // Limpeza preventiva para evitar problemas de quota
+        this.forceCleanupLocalStorage();
+        
+        // Verificar se ainda há problemas de quota após limpeza
+        try {
+            // Tentar salvar um item de teste para verificar se há espaço
+            const testKey = 'trilho-test-' + Date.now();
+            localStorage.setItem(testKey, 'test');
+            localStorage.removeItem(testKey);
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                console.warn('⚠️ localStorage ainda cheio após limpeza, forçando limpeza total...');
+                this.clearAllData();
+            }
+        }
+        
+        // Tornar acessível globalmente para os modais
+        window.trilhoConfigurator = this;
+        
         console.log('TrilhoConfigurator inicializado com sucesso');
     }
 
@@ -476,43 +498,8 @@ class TrilhoConfigurator {
     }
 
     addZone() {
-        // Calcular posição máxima permitida (trilho - largura da TV)
-        const trilhoMin = this.config.trilho.physicalMinCm || 0;
-        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
-        const tvWidth = this.config.trilho.screenWidthCm || 52.5;
-        const maxPosition = trilhoMax - tvWidth;
-        
-        // Posição inicial no meio do trilho disponível
-        const initialPosition = Math.max(trilhoMin, Math.min(maxPosition, (trilhoMin + maxPosition) / 2));
-        
-        const newZone = {
-            id: Date.now().toString(),
-            name: `Zona ${this.zones.length + 1}`,
-            type: 0, // 0: Imagem, 1: Vídeo, 2: Texto, 3: Aplicação
-            positionCm: initialPosition,
-            // Removidos widthCm e heightCm - não fazem sentido para zonas
-            imageSettings: {
-                imageFile: '',
-                uploadedFile: null
-            },
-            videoSettings: {
-                videoFile: '',
-                uploadedFile: null,
-                loop: true
-            },
-            textSettings: {
-                text: 'Texto da zona',
-                fontSize: 24,
-                textColor: [0, 0, 0, 1]
-            }
-        };
-
-        this.zones.push(newZone);
-        this.renderZone(newZone, this.zones.length - 1);
-        this.updateTrilhoMinimap();
-        this.updateLastModified();
-        console.log('Nova zona adicionada:', newZone);
-        console.log(`Posição limitada entre ${trilhoMin}cm e ${maxPosition}cm (trilho: ${trilhoMax}cm - TV: ${tvWidth}cm)`);
+        // Abrir modal para nova zona
+        this.openZoneModal();
     }
 
     addTestZone() {
@@ -1089,9 +1076,6 @@ class TrilhoConfigurator {
         // Configurar bullet movível do trilho
         this.setupTrilhoMovableBullet();
         
-        // Renderizar zonas na visualização do background
-        this.renderZonesInBackground();
-        
         this._updatingMinimap = false;
     }
 
@@ -1161,156 +1145,31 @@ class TrilhoConfigurator {
         bullet.style.left = `${initialPosition}%`;
     }
 
-    setupMagnificationEffect(containerWidth, containerHeight) {
-        const magnificationFrame = document.getElementById('zones-magnification-frame');
-        const magnificationContent = document.getElementById('zones-magnification-content');
-        
-        if (!magnificationFrame || !magnificationContent) {
-            console.log('❌ Elementos de lupa não encontrados');
-            return;
-        }
 
-        let isDragging = false;
-        let startX = 0;
-        let startY = 0;
-        let startLeft = 0;
-        let startTop = 0;
 
-        // Event listeners para arrastar a lupa
-        magnificationFrame.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = parseFloat(magnificationFrame.style.left) || 50;
-            startTop = parseFloat(magnificationFrame.style.top) || 50;
-            magnificationFrame.style.cursor = 'grabbing';
-            e.preventDefault();
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            
-            let newLeft = startLeft + (deltaX / containerWidth) * 100;
-            let newTop = startTop + (deltaY / containerHeight) * 100;
-
-            // Limitar dentro do container
-            newLeft = Math.max(0, Math.min(100, newLeft));
-            newTop = Math.max(0, Math.min(100, newTop));
-            
-            magnificationFrame.style.left = `${newLeft}%`;
-            magnificationFrame.style.top = `${newTop}%`;
-
-            // Atualizar conteúdo da lupa
-            this.updateMagnificationContent(newLeft, newTop);
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                magnificationFrame.style.cursor = 'move';
-            }
-        });
-
-        // Posicionar lupa inicialmente no centro
-        magnificationFrame.style.left = '50%';
-        magnificationFrame.style.top = '50%';
-        
-        // Atualizar conteúdo inicial
-        this.updateMagnificationContent(50, 50);
-    }
-
-    updateMagnificationContent(leftPercent, topPercent) {
-        const magnificationContent = document.getElementById('zones-magnification-content');
-        if (!magnificationContent) return;
-
-        // Calcular posição real em centímetros
-        const trilhoMin = this.config.trilho.physicalMinCm || 0;
-        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
-        const trilhoLength = trilhoMax - trilhoMin;
-        
-        const positionCm = trilhoMin + (leftPercent / 100) * trilhoLength;
-        const heightCm = 50 + (topPercent / 100) * 100; // Altura aproximada
-
-        // Verificar se há zona nesta posição (aumentar tolerância)
-        const nearbyZone = this.zones.find(zone => 
-            Math.abs(zone.positionCm - positionCm) < 50 // Aumentar para 50cm de tolerância
-        );
-
-        if (nearbyZone) {
-            if (nearbyZone.type === 'image' && nearbyZone.imageData) {
-                magnificationContent.innerHTML = `
-                    <div style="text-align: center;">
-                        <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">${positionCm.toFixed(1)}cm</div>
-                        <div style="width: 100%; height: 80px; overflow: hidden; border-radius: 4px; margin-bottom: 4px;">
-                            <img src="${nearbyZone.imageData}" alt="${nearbyZone.name}" 
-                                 style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div style="font-weight: bold; color: #3b82f6; font-size: 0.8rem;">${nearbyZone.name}</div>
-                        <div style="font-size: 0.6rem; color: #666;">${this.getZoneTypeName(nearbyZone.type)}</div>
-                    </div>
-                `;
-            } else {
-                magnificationContent.innerHTML = `
-                    <div style="text-align: center;">
-                        <div style="font-weight: bold; color: #3b82f6;">${nearbyZone.name}</div>
-                        <div style="font-size: 0.7rem; color: #666;">${positionCm.toFixed(1)}cm</div>
-                        <div style="font-size: 0.7rem; color: #666;">${this.getZoneTypeName(nearbyZone.type)}</div>
-                    </div>
-                `;
-            }
-        } else {
-            // Se não há zona próxima, mostrar a zona mais próxima disponível
-            const closestZone = this.zones.reduce((closest, zone) => {
-                const currentDistance = Math.abs(zone.positionCm - positionCm);
-                const closestDistance = Math.abs(closest.positionCm - positionCm);
-                return currentDistance < closestDistance ? zone : closest;
-            }, this.zones[0]);
-
-            if (closestZone && this.zones.length > 0) {
-                if (closestZone.type === 'image' && closestZone.imageData) {
-                    magnificationContent.innerHTML = `
-                        <div style="text-align: center;">
-                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">${positionCm.toFixed(1)}cm</div>
-                            <div style="width: 100%; height: 80px; overflow: hidden; border-radius: 4px; margin-bottom: 4px;">
-                                <img src="${closestZone.imageData}" alt="${closestZone.name}" 
-                                     style="width: 100%; height: 100%; object-fit: cover;">
-                            </div>
-                            <div style="font-weight: bold; color: #3b82f6; font-size: 0.8rem;">${closestZone.name}</div>
-                            <div style="font-size: 0.6rem; color: #666;">${this.getZoneTypeName(closestZone.type)}</div>
-                            <div style="font-size: 0.5rem; color: #999;">Distância: ${Math.abs(closestZone.positionCm - positionCm).toFixed(1)}cm</div>
-                        </div>
-                    `;
-                } else {
-                    magnificationContent.innerHTML = `
-                        <div style="text-align: center;">
-                            <div style="font-size: 0.8rem; color: #666;">Posição: ${positionCm.toFixed(1)}cm</div>
-                            <div style="font-weight: bold; color: #3b82f6;">Zona mais próxima: ${closestZone.name}</div>
-                            <div style="font-size: 0.6rem; color: #999;">Distância: ${Math.abs(closestZone.positionCm - positionCm).toFixed(1)}cm</div>
-                        </div>
-                    `;
-                }
-            } else {
-                magnificationContent.innerHTML = `
-                    <div style="text-align: center;">
-                        <div style="font-size: 0.8rem; color: #666;">Posição: ${positionCm.toFixed(1)}cm</div>
-                        <div style="font-size: 0.7rem; color: #999;">Nenhuma zona cadastrada</div>
-                    </div>
-                `;
-            }
-        }
-    }
-
-    renderZonesInBackground() {
+    renderZonesInBackground(containerWidth, containerHeight) {
         console.log('=== RENDERIZANDO ZONAS NO BACKGROUND ===');
+        console.log('Container:', containerWidth, 'x', containerHeight);
         console.log('Zonas disponíveis:', this.zones);
         console.log('Quantidade de zonas:', this.zones ? this.zones.length : 'undefined');
         
         const zonesContainer = document.getElementById('zones-trilho-zones');
         if (!zonesContainer) {
             console.log('❌ Container zones-trilho-zones não encontrado');
+            console.log('Procurando por container alternativo...');
+            
+            // Tentar encontrar o container de outra forma
+            const backgroundContainer = document.getElementById('zones-background-container');
+            if (backgroundContainer) {
+                console.log('✅ Container zones-background-container encontrado');
+                // Criar o container se não existir
+                const newContainer = document.createElement('div');
+                newContainer.id = 'zones-trilho-zones';
+                newContainer.className = 'zones-trilho-zones';
+                backgroundContainer.appendChild(newContainer);
+                console.log('✅ Container zones-trilho-zones criado');
+                return this.renderZonesInBackground(); // Recursão para tentar novamente
+            }
             return;
         }
         console.log('✅ Container zones-trilho-zones encontrado');
@@ -1333,6 +1192,7 @@ class TrilhoConfigurator {
             console.log(`   - Nome: ${zone.name}`);
             console.log(`   - Posição: ${zone.positionCm}cm`);
             console.log(`   - Tipo: ${zone.type}`);
+            console.log(`   - ID: ${zone.id}`);
             
             const zoneElement = document.createElement('div');
             zoneElement.className = 'zones-background-zone';
@@ -1349,10 +1209,32 @@ class TrilhoConfigurator {
             zoneElement.style.top = '50%';
             zoneElement.style.transform = 'translateY(-50%)';
             
-            // Aplicar cor baseada no tipo
+            // Calcular tamanho baseado na TV
+            const tvWidth = this.config.trilho.screenWidthCm || 52.5;
+            const tvHeight = this.config.trilho.screenHeightCm || 93.5;
+            const bgWidth = this.config.background.widthCm || 300;
+            const bgHeight = this.config.background.heightCm || 200;
+            
+            // Calcular escala baseada no background
+            const scaleX = containerWidth / bgWidth;
+            const scaleY = containerHeight / bgHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // Tamanho da zona baseado no aspecto 9:16
+            const zoneHeight = 360; // Altura fixa de 360px como solicitado
+            const zoneWidth = zoneHeight * (9/16); // Largura baseada no aspecto 9:16
+            
+            console.log(`   - TV: ${tvWidth}x${tvHeight}cm, Scale: ${scale}`);
+            console.log(`   - Zona: ${zoneWidth}x${zoneHeight}px`);
+            console.log(`   - Tipo: ${zone.type}, VideoData: ${!!zone.videoData}`);
+            
+            // Aplicar tamanho e cor baseada no tipo
             const zoneColor = this.getZoneColor(zone.type);
             const borderColor = this.getZoneTypeColor(zone.type);
             console.log(`   - Cor: ${zoneColor}, Borda: ${borderColor}`);
+            
+            zoneElement.style.width = `${zoneWidth}px`;
+            zoneElement.style.height = `${zoneHeight}px`;
             zoneElement.style.background = zoneColor;
             zoneElement.style.borderColor = borderColor;
             
@@ -1362,6 +1244,29 @@ class TrilhoConfigurator {
                 zoneContent = `
                     <div class="zones-zone-image-preview">
                         <img src="${zone.imageData}" alt="${zone.name}" class="zones-zone-image">
+                        <div class="zones-zone-overlay">
+                            <div class="zones-zone-name">${zone.name}</div>
+                            <div class="zones-zone-position">${zone.positionCm}cm</div>
+                        </div>
+                    </div>
+                `;
+            } else if (zone.type === 'video' && zone.videoData) {
+                console.log(`🎥 Renderizando vídeo para zona ${zone.name}:`, zone.videoData.substring(0, 50) + '...');
+                zoneContent = `
+                    <div class="zones-zone-video-preview">
+                        <video src="${zone.videoData}" autoplay muted loop playsinline class="zones-zone-video">
+                            Seu navegador não suporta vídeo.
+                        </video>
+                        <div class="zones-zone-overlay">
+                            <div class="zones-zone-name">${zone.name}</div>
+                            <div class="zones-zone-position">${zone.positionCm}cm</div>
+                        </div>
+                    </div>
+                `;
+            } else if (zone.type === 'text' && zone.text) {
+                zoneContent = `
+                    <div class="zones-zone-text-preview">
+                        <div class="zones-zone-text-content">${zone.text}</div>
                         <div class="zones-zone-overlay">
                             <div class="zones-zone-name">${zone.name}</div>
                             <div class="zones-zone-position">${zone.positionCm}cm</div>
@@ -1380,9 +1285,23 @@ class TrilhoConfigurator {
             
             zoneElement.innerHTML = zoneContent;
             
+            // Log para verificar se o vídeo foi criado
+            if (zone.type === 'video' && zone.videoData) {
+                const videoElement = zoneElement.querySelector('.zones-zone-video');
+                if (videoElement) {
+                    console.log('✅ Elemento de vídeo criado:', videoElement);
+                    console.log('✅ Src do vídeo:', videoElement.src);
+                } else {
+                    console.log('❌ Elemento de vídeo não encontrado');
+                }
+            }
+            
             // Event listeners
-            zoneElement.addEventListener('click', () => {
-                this.focusZone(zone.id);
+            zoneElement.addEventListener('click', (e) => {
+                console.log('🖱️ Clique na zona:', zone.name);
+                e.stopPropagation();
+                e.preventDefault();
+                this.openZoneModal(zone);
             });
             
             zoneElement.addEventListener('mouseenter', () => {
@@ -1393,8 +1312,11 @@ class TrilhoConfigurator {
                 zoneElement.classList.remove('hovered');
             });
 
-            // Drag & Drop para zonas
-            this.setupZoneDragDrop(zoneElement, zone, trilhoMin, trilhoLength);
+            // Remover drag & drop - apenas clique para abrir modal
+            // this.setupZoneDragDrop(zoneElement, zone, trilhoMin, trilhoLength);
+            
+            // Adicionar cursor pointer para indicar que é clicável
+            zoneElement.style.cursor = 'pointer';
             
             zonesContainer.appendChild(zoneElement);
             console.log(`✅ Zona ${zone.name} renderizada no background na posição ${positionPercent}%`);
@@ -1967,32 +1889,43 @@ class TrilhoConfigurator {
         console.log('Configuração atual:', this.config);
         console.log('Background config:', this.config.background);
         
-        // Verificar se há imagem de background configurada
-        if (!this.config.background.imageFile) {
-            console.log('❌ Nenhuma imagem de background configurada');
-            console.log('Background config completo:', this.config.background);
-            return;
+        // Procurar imagem de background de diferentes formas
+        let imageFile = null;
+        let storedImageData = null;
+        
+        // 1. Tentar imageFile primeiro
+        if (this.config.background?.imageFile) {
+            imageFile = this.config.background.imageFile;
+            storedImageData = localStorage.getItem(`trilho_image_${imageFile}`);
+            console.log('🔍 Tentativa 1 - imageFile:', imageFile, 'Encontrada:', !!storedImageData);
         }
-
-        console.log('✅ Imagem configurada:', this.config.background.imageFile);
-
-        // Verificar se a imagem existe no localStorage
-        const storedImageData = localStorage.getItem(`trilho_image_${this.config.background.imageFile}`);
+        
+        // 2. Se não encontrou, procurar por trilho-background-image
         if (!storedImageData) {
-            console.log('❌ Imagem de background não encontrada no localStorage');
-            console.log('Chave procurada:', `trilho_image_${this.config.background.imageFile}`);
-            console.log('Chaves disponíveis no localStorage:');
+            storedImageData = localStorage.getItem('trilho-background-image');
+            if (storedImageData) {
+                imageFile = 'background-image';
+                console.log('🔍 Tentativa 2 - trilho-background-image encontrada');
+            }
+        }
+        
+        // 3. Se ainda não encontrou, procurar qualquer chave que contenha dados de imagem
+        if (!storedImageData) {
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith('trilho_image_')) {
-                    console.log('  -', key);
+                if (key && (key.includes('background') || key.includes('image'))) {
+                    const data = localStorage.getItem(key);
+                    if (data && data.startsWith('data:image/')) {
+                        storedImageData = data;
+                        imageFile = key;
+                        console.log('🔍 Tentativa 3 - Imagem encontrada na chave:', key);
+                        break;
+                    }
                 }
             }
-            return;
         }
-
-        console.log('✅ Imagem encontrada no localStorage, tamanho:', storedImageData.length, 'caracteres');
-        console.log('✅ Carregando imagem de background para seção zones:', this.config.background.imageFile);
+        
+        console.log('✅ Resultado da busca:', imageFile ? 'Imagem encontrada' : 'Nenhuma imagem encontrada');
 
         // Valores do trilho configurados - MOVIDO PARA CIMA
         const trilhoMin = this.config.trilho.physicalMinCm || 0;
@@ -2029,14 +1962,6 @@ class TrilhoConfigurator {
             <div class="zones-background-container" id="zones-background-container">
                 <div class="zones-background-image" id="zones-background-image"></div>
                 <div class="zones-background-overlay" id="zones-background-overlay">
-                    <!-- Efeito de lupa/magnificação -->
-                    <div class="zones-magnification-overlay" id="zones-magnification-overlay">
-                        <div class="zones-magnification-frame" id="zones-magnification-frame">
-                            <div class="zones-magnification-content" id="zones-magnification-content">
-                                <!-- Conteúdo ampliado será inserido aqui -->
-                            </div>
-                        </div>
-                    </div>
                     <!-- Zonas sobrepostas sobre a imagem -->
                     <div class="zones-trilho-zones" id="zones-trilho-zones">
                         <!-- Zonas serão posicionadas aqui dinamicamente -->
@@ -2047,12 +1972,21 @@ class TrilhoConfigurator {
                     </div>
                 </div>
             </div>
+            <!-- TV Simulation Overlay (mesmo estilo da aba BACKGROUND) -->
+            <div class="simulation-tv-overlay magnifying-active" id="zones-simulation-tv-overlay">
+                <div class="simulation-tv-content">
+                    <span>TV</span>
+                    <div class="magnifying-glass-effect"></div>
+                </div>
+            </div>
         `;
 
-        // Aplicar a imagem de background
+        // Adicionar modal de configuração de zona (se não existir)
+        this.addZoneModalHTML();
+
+        // Aplicar a imagem de background se encontrada
         const backgroundImage = document.getElementById('zones-background-image');
-        console.log('🔍 Background image element:', backgroundImage);
-        if (backgroundImage) {
+        if (backgroundImage && storedImageData) {
             console.log('✅ Aplicando imagem de background...');
             backgroundImage.style.backgroundImage = `url(${storedImageData})`;
             backgroundImage.style.backgroundSize = 'cover';
@@ -2060,7 +1994,13 @@ class TrilhoConfigurator {
             backgroundImage.style.backgroundRepeat = 'no-repeat';
             console.log('✅ Imagem aplicada com sucesso');
         } else {
-            console.log('❌ Elemento zones-background-image não encontrado');
+            console.log('⚠️ Usando placeholder - nenhuma imagem encontrada');
+            backgroundImage.style.backgroundColor = '#f0f0f0';
+            backgroundImage.style.border = '2px dashed #ccc';
+            backgroundImage.style.display = 'flex';
+            backgroundImage.style.alignItems = 'center';
+            backgroundImage.style.justifyContent = 'center';
+            backgroundImage.innerHTML = '<div style="text-align: center; color: #666;"><p>📷 Configure uma imagem na aba "Background"</p></div>';
         }
 
         // Configurar dimensões do container
@@ -2070,9 +2010,9 @@ class TrilhoConfigurator {
         const tvHeight = this.config.trilho.screenHeightCm || 93.5;
         const tvHeightFromFloor = this.config.trilho.tvHeightFromFloor || 80;
 
-        // Calcular escala para visualização - usar toda a largura disponível
-        const maxWidth = 800; // Aumentar largura máxima
-        const maxHeight = 500; // Aumentar altura máxima
+        // Calcular escala para visualização - ajustar para não estourar o layout
+        const maxWidth = Math.min(1000, window.innerWidth - 100); // Máximo 1000px ou largura da tela - 100px
+        const maxHeight = 600; // Altura máxima controlada
         const scaleX = maxWidth / bgWidth;
         const scaleY = maxHeight / bgHeight;
         const scale = Math.min(scaleX, scaleY);
@@ -2085,6 +2025,8 @@ class TrilhoConfigurator {
         if (container) {
             container.style.width = `${containerWidth}px`;
             container.style.height = `${containerHeight}px`;
+            container.style.maxWidth = '100%';
+            container.style.overflow = 'hidden';
         }
 
         // Posicionar TV
@@ -2119,12 +2061,556 @@ class TrilhoConfigurator {
         // Configurar bullet verde movível
         this.setupMovableBullet(containerWidth, trilhoMin, trilhoMax);
         
-        // Configurar efeito de lupa
-        this.setupMagnificationEffect(containerWidth, containerHeight);
+        // Configurar TV simulation overlay (como na aba Background)
+        console.log('🔧 Configurando TV simulation...');
+        // Aguardar um pouco para garantir que o HTML foi criado
+        setTimeout(() => {
+            this.setupZonesTVSimulation(containerWidth, containerHeight, trilhoMin, trilhoMax);
+        }, 100);
+
+        // As zonas já foram carregadas pelo loadWizardState() no construtor
+        // Se não há zonas, criar uma de teste
+        if (!this.zones || this.zones.length === 0) {
+            console.log('🔧 Nenhuma zona encontrada, criando zona de teste...');
+            this.zones = [{
+                id: 'test-zone-1',
+                name: 'Zona Teste',
+                type: 'image',
+                positionCm: 150,
+                imageData: null
+            }];
+            this.saveZones();
+        } else {
+            console.log('🔍 Zonas encontradas:', this.zones);
+            this.zones.forEach((zone, index) => {
+                console.log(`Zona ${index}:`, {
+                    id: zone.id,
+                    name: zone.name,
+                    type: zone.type,
+                    positionCm: zone.positionCm,
+                    hasImageData: !!zone.imageData,
+                    hasVideoData: !!zone.videoData,
+                    hasText: !!zone.text
+                });
+            });
+        }
         
-        // Overlay de simulação removido (apenas bullet sobre a imagem)
+        // Renderizar zonas existentes no background
+        console.log('🔍 Chamando renderZonesInBackground...');
+        console.log('Zonas antes de renderizar:', this.zones);
+        this.renderZonesInBackground(containerWidth, containerHeight);
 
         console.log('✅ Visualização do background criada na seção zones');
+    }
+
+    loadZonesFromStorage() {
+        try {
+            const savedZones = localStorage.getItem('trilho-zones');
+            if (savedZones) {
+                this.zones = JSON.parse(savedZones);
+                console.log('✅ Zonas carregadas do localStorage:', this.zones);
+                
+                // Debug detalhado para vídeos
+                this.zones.forEach((zone, index) => {
+                    console.log(`🔍 Zona ${index}:`, {
+                        id: zone.id,
+                        name: zone.name,
+                        type: zone.type,
+                        positionCm: zone.positionCm,
+                        hasImageData: !!zone.imageData,
+                        hasVideoData: !!zone.videoData,
+                        hasText: !!zone.text,
+                        videoDataLength: zone.videoData ? zone.videoData.length : 0,
+                        videoDataStart: zone.videoData ? zone.videoData.substring(0, 50) + '...' : 'N/A'
+                    });
+                });
+            } else {
+                console.log('❌ Nenhuma zona encontrada no localStorage');
+                this.zones = [];
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar zonas do localStorage:', error);
+            this.zones = [];
+        }
+    }
+
+    addZoneModalHTML() {
+        // Verificar se o modal já existe
+        if (document.getElementById('zone-config-modal')) {
+            console.log('✅ Modal já existe, não criando novamente');
+            return;
+        }
+        
+        console.log('🔧 Criando modal de configuração de zona...');
+
+        const modalHTML = `
+            <!-- Modal de Configuração de Zona -->
+            <div id="zone-config-modal" class="zone-modal" style="display: none;">
+                <div class="zone-modal-content">
+                    <div class="zone-modal-header">
+                        <h3 id="zone-modal-title">Configurar Zona</h3>
+                        <button id="zone-modal-close" class="zone-modal-close">&times;</button>
+                    </div>
+                    <div class="zone-modal-body">
+                        <form id="zone-config-form">
+                            <div class="form-group">
+                                <label for="zone-name">Nome da Zona:</label>
+                                <input type="text" id="zone-name" name="name" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="zone-type">Tipo:</label>
+                                <select id="zone-type" name="type" required>
+                                    <option value="image">Imagem</option>
+                                    <option value="video">Vídeo</option>
+                                    <option value="text">Texto</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="zone-position">Posição (cm):</label>
+                                <input type="number" id="zone-position" name="positionCm" min="0" max="300" step="0.1" required>
+                            </div>
+                            
+                            <div class="form-group" id="zone-image-group" style="display: none;">
+                                <label for="zone-image">Imagem:</label>
+                                <input type="file" id="zone-image" name="image" accept="image/*">
+                                <div id="zone-image-preview" class="zone-image-preview"></div>
+                            </div>
+                            
+                            <div class="form-group" id="zone-video-group" style="display: none;">
+                                <label for="zone-video">Vídeo:</label>
+                                <input type="file" id="zone-video" name="video" accept="video/*">
+                                <div id="zone-video-preview" class="zone-video-preview"></div>
+                            </div>
+                            
+                            <div class="form-group" id="zone-text-group" style="display: none;">
+                                <label for="zone-text">Texto:</label>
+                                <textarea id="zone-text" name="text" rows="3"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="zone-modal-footer">
+                        <button id="zone-modal-cancel" class="btn btn-secondary">Cancelar</button>
+                        <button id="zone-modal-save" class="btn btn-primary">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Adicionar modal ao body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Configurar event listeners do modal
+        this.setupZoneModalEvents();
+    }
+
+    setupZoneModalEvents() {
+        const modal = document.getElementById('zone-config-modal');
+        const closeBtn = document.getElementById('zone-modal-close');
+        const cancelBtn = document.getElementById('zone-modal-cancel');
+        const saveBtn = document.getElementById('zone-modal-save');
+        const form = document.getElementById('zone-config-form');
+        const typeSelect = document.getElementById('zone-type');
+
+        // Fechar modal
+        closeBtn.addEventListener('click', () => this.closeZoneModal());
+        cancelBtn.addEventListener('click', () => this.closeZoneModal());
+        
+        // Fechar ao clicar fora do modal
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closeZoneModal();
+            }
+        });
+
+        // Salvar zona
+        saveBtn.addEventListener('click', () => this.saveZoneFromModal());
+
+        // Mostrar/ocultar campos baseados no tipo
+        typeSelect.addEventListener('change', (e) => {
+            this.toggleZoneTypeFields(e.target.value);
+        });
+    }
+
+    openZoneModal(zone = null) {
+        console.log('🔧 Abrindo modal de zona:', zone);
+        
+        const modal = document.getElementById('zone-config-modal');
+        const title = document.getElementById('zone-modal-title');
+        const form = document.getElementById('zone-config-form');
+        
+        if (!modal) {
+            console.error('❌ Modal não encontrado!');
+            return;
+        }
+        
+        console.log('✅ Modal encontrado, configurando...');
+        
+        // Armazenar zona atual para edição
+        this.currentEditingZone = zone;
+        
+        if (zone) {
+            // Editar zona existente
+            title.textContent = 'Editar Zona';
+            this.populateZoneForm(zone);
+        } else {
+            // Nova zona
+            title.textContent = 'Nova Zona';
+            form.reset();
+            this.toggleZoneTypeFields('image');
+        }
+        
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeZoneModal() {
+        const modal = document.getElementById('zone-config-modal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Limpar zona atual sendo editada
+        this.currentEditingZone = null;
+    }
+
+    populateZoneForm(zone) {
+        document.getElementById('zone-name').value = zone.name || '';
+        document.getElementById('zone-type').value = zone.type || 'image';
+        document.getElementById('zone-position').value = zone.positionCm || 0;
+        
+        // Mostrar campos baseados no tipo
+        this.toggleZoneTypeFields(zone.type);
+        
+        // Preencher campos específicos do tipo
+        if (zone.type === 'image' && zone.imageData) {
+            const preview = document.getElementById('zone-image-preview');
+            preview.innerHTML = `<img src="${zone.imageData}" style="max-width: 200px; max-height: 150px;">`;
+        } else if (zone.type === 'video' && zone.videoData) {
+            const preview = document.getElementById('zone-video-preview');
+            preview.innerHTML = `<video src="${zone.videoData}" style="max-width: 200px; max-height: 150px;" controls></video>`;
+        } else if (zone.type === 'text' && zone.text) {
+            document.getElementById('zone-text').value = zone.text;
+        }
+    }
+
+    toggleZoneTypeFields(type) {
+        // Ocultar todos os grupos
+        document.getElementById('zone-image-group').style.display = 'none';
+        document.getElementById('zone-video-group').style.display = 'none';
+        document.getElementById('zone-text-group').style.display = 'none';
+        
+        // Mostrar grupo correspondente
+        if (type === 'image') {
+            document.getElementById('zone-image-group').style.display = 'block';
+        } else if (type === 'video') {
+            document.getElementById('zone-video-group').style.display = 'block';
+        } else if (type === 'text') {
+            document.getElementById('zone-text-group').style.display = 'block';
+        }
+    }
+
+    async saveZoneFromModal() {
+        const form = document.getElementById('zone-config-form');
+        const formData = new FormData(form);
+        
+        // Verificar se é edição (zona atual armazenada)
+        const currentZone = this.currentEditingZone;
+        
+        const zoneData = {
+            name: formData.get('name'),
+            type: formData.get('type'),
+            positionCm: parseFloat(formData.get('positionCm'))
+        };
+        
+        // Se é edição, manter o ID
+        if (currentZone && currentZone.id) {
+            zoneData.id = currentZone.id;
+        }
+        
+        // Processar arquivo baseado no tipo
+        if (zoneData.type === 'image') {
+            const imageFile = formData.get('image');
+            if (imageFile && imageFile.size > 0) {
+                zoneData.imageData = await this.fileToBase64(imageFile);
+            } else if (currentZone && currentZone.imageData) {
+                // Manter imagem existente se não foi alterada
+                zoneData.imageData = currentZone.imageData;
+            }
+        } else if (zoneData.type === 'video') {
+            const videoFile = formData.get('video');
+            if (videoFile && videoFile.size > 0) {
+                // Mostrar aviso sobre tamanho do arquivo, mas permitir salvamento
+                const fileSizeMB = (videoFile.size / 1024 / 1024).toFixed(1);
+                if (videoFile.size > 5 * 1024 * 1024) { // 5MB
+                    this.showToast(`Arquivo de vídeo grande (${fileSizeMB}MB). Processando...`, 'info');
+                    // Mostrar indicador de progresso
+                    const progressToast = this.showToast(`Processando vídeo de ${fileSizeMB}MB...`, 'info', 0);
+                }
+                zoneData.videoData = await this.fileToBase64(videoFile);
+                if (videoFile.size > 5 * 1024 * 1024) {
+                    this.showToast(`Vídeo de ${fileSizeMB}MB processado com sucesso!`, 'success');
+                }
+            } else if (currentZone && currentZone.videoData) {
+                // Manter vídeo existente se não foi alterado
+                zoneData.videoData = currentZone.videoData;
+            }
+        } else if (zoneData.type === 'text') {
+            zoneData.text = formData.get('text');
+        }
+        
+        // Salvar zona
+        this.saveZone(zoneData);
+        this.closeZoneModal();
+    }
+
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    saveZone(zoneData) {
+        console.log('🔧 Salvando zona:', zoneData);
+        console.log('🔧 VideoData presente:', !!zoneData.videoData);
+        console.log('🔧 VideoData length:', zoneData.videoData ? zoneData.videoData.length : 0);
+        
+        // Se é uma zona existente (tem ID), atualizar
+        if (zoneData.id) {
+            const index = this.zones.findIndex(z => z.id === zoneData.id);
+            if (index !== -1) {
+                this.zones[index] = { ...this.zones[index], ...zoneData };
+                console.log('✅ Zona atualizada:', this.zones[index]);
+                console.log('✅ VideoData após atualização:', !!this.zones[index].videoData);
+            } else {
+                console.log('❌ Zona não encontrada para atualizar:', zoneData.id);
+            }
+        } else {
+            // Nova zona
+            const newZone = {
+                id: Date.now().toString(),
+                ...zoneData
+            };
+            this.zones.push(newZone);
+            console.log('✅ Nova zona criada:', newZone);
+            console.log('✅ VideoData na nova zona:', !!newZone.videoData);
+        }
+        
+        // Salvar no localStorage
+        this.saveZones();
+        
+        // Atualizar visualizações
+        this.renderZones();
+        this.updateTrilhoMinimap();
+        
+        // Re-renderizar zonas no background com dimensões corretas
+        const container = document.getElementById('zones-background-container');
+        if (container) {
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+            this.renderZonesInBackground(containerWidth, containerHeight);
+        }
+        
+        console.log('✅ Zonas salvas e visualizações atualizadas');
+    }
+
+    saveZones() {
+        try {
+            // Salvar apenas em trilho-zones (separado do wizard state)
+            localStorage.setItem('trilho-zones', JSON.stringify(this.zones));
+            console.log('✅ Zonas salvas no localStorage:', this.zones);
+        } catch (error) {
+            console.error('❌ Erro ao salvar zonas no localStorage:', error);
+            if (error.name === 'QuotaExceededError') {
+                console.log('🧹 Quota excedida para zonas, executando limpeza...');
+                this.forceCleanupLocalStorage();
+                // Tentar salvar novamente
+                try {
+                    localStorage.setItem('trilho-zones', JSON.stringify(this.zones));
+                    console.log('✅ Zonas salvas após limpeza');
+                } catch (retryError) {
+                    console.error('❌ Ainda não foi possível salvar zonas:', retryError);
+                }
+            }
+        }
+    }
+
+    setupZonesTVSimulation(containerWidth, containerHeight, trilhoMin, trilhoMax) {
+        console.log('🔧 === SETUP TV SIMULATION ===');
+        console.log('Container:', containerWidth, 'x', containerHeight);
+        console.log('Trilho:', trilhoMin, 'a', trilhoMax);
+        
+        const tvOverlay = document.getElementById('zones-simulation-tv-overlay');
+        if (!tvOverlay) {
+            console.log('❌ TV simulation overlay não encontrado');
+            console.log('🔍 Procurando elementos com ID zones-simulation-tv-overlay...');
+            const allElements = document.querySelectorAll('[id*="simulation-tv"]');
+            console.log('Elementos encontrados:', allElements);
+            return;
+        }
+        
+        console.log('✅ TV simulation overlay encontrado:', tvOverlay);
+
+        // Configurar posição inicial da TV
+        const currentPosition = this.config.trilho.currentPositionCm || 150;
+        const positionPercent = ((currentPosition - trilhoMin) / (trilhoMax - trilhoMin)) * 100;
+        
+        // Calcular dimensões da TV baseadas no container
+        const tvWidth = Math.min(containerWidth * 0.25, 200); // 25% da largura ou máximo 200px
+        const tvHeight = tvWidth * 1.5; // Proporção ajustada para incluir controles
+        
+        // Posicionar TV sobre a imagem de background
+        tvOverlay.style.width = `${tvWidth}px`;
+        tvOverlay.style.height = `${tvHeight}px`;
+        tvOverlay.style.left = `${positionPercent}%`;
+        tvOverlay.style.top = '50%';
+        tvOverlay.style.transform = 'translate(-50%, -50%)';
+        tvOverlay.style.position = 'absolute';
+        tvOverlay.style.zIndex = '30'; // Z-index maior para ficar sobre as zonas
+        tvOverlay.style.display = 'flex'; // Garantir que está visível
+        
+        // Garantir que a TV está dentro do container de background
+        const backgroundContainer = document.getElementById('zones-background-container');
+        if (backgroundContainer) {
+            backgroundContainer.appendChild(tvOverlay);
+        }
+        
+        // Configurar controles da TV
+        this.setupTVControls();
+        
+        // Configurar drag & drop para a TV
+        this.setupTVDragDrop(tvOverlay, trilhoMin, trilhoMax);
+        
+        console.log(`📺 TV simulation configurada: ${tvWidth}x${tvHeight}px na posição ${positionPercent}%`);
+        console.log(`📺 TV overlay element:`, tvOverlay);
+    }
+
+    setupTVControls() {
+        const moveLeftBtn = document.getElementById('tv-move-left');
+        const moveRightBtn = document.getElementById('tv-move-right');
+        const powerBtn = document.getElementById('tv-power-btn');
+        const volumeUpBtn = document.getElementById('tv-volume-up');
+        const volumeDownBtn = document.getElementById('tv-volume-down');
+
+        if (moveLeftBtn) {
+            moveLeftBtn.addEventListener('click', () => {
+                console.log('◀ Mover TV para esquerda');
+                this.moveTVLeft();
+            });
+        }
+
+        if (moveRightBtn) {
+            moveRightBtn.addEventListener('click', () => {
+                console.log('▶ Mover TV para direita');
+                this.moveTVRight();
+            });
+        }
+
+        if (powerBtn) {
+            powerBtn.addEventListener('click', () => {
+                console.log('🔌 Botão Power clicado');
+                // Implementar lógica de ligar/desligar TV
+            });
+        }
+
+        if (volumeUpBtn) {
+            volumeUpBtn.addEventListener('click', () => {
+                console.log('🔊 Volume Up clicado');
+                // Implementar lógica de aumentar volume
+            });
+        }
+
+        if (volumeDownBtn) {
+            volumeDownBtn.addEventListener('click', () => {
+                console.log('🔉 Volume Down clicado');
+                // Implementar lógica de diminuir volume
+            });
+        }
+    }
+
+    moveTVLeft() {
+        const currentPosition = this.config.trilho.currentPositionCm || 150;
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const tvWidth = this.config.trilho.screenWidthCm || 52.5;
+        
+        // Mover 10cm para a esquerda
+        const newPosition = Math.max(trilhoMin, currentPosition - 10);
+        
+        console.log(`📺 Movendo TV para esquerda: ${currentPosition}cm → ${newPosition}cm`);
+        this.updateTVPosition(newPosition);
+    }
+
+    moveTVRight() {
+        const currentPosition = this.config.trilho.currentPositionCm || 150;
+        const trilhoMin = this.config.trilho.physicalMinCm || 0;
+        const trilhoMax = this.config.trilho.physicalMaxCm || 300;
+        const tvWidth = this.config.trilho.screenWidthCm || 52.5;
+        
+        // Mover 10cm para a direita
+        const newPosition = Math.min(trilhoMax - tvWidth, currentPosition + 10);
+        
+        console.log(`📺 Movendo TV para direita: ${currentPosition}cm → ${newPosition}cm`);
+        this.updateTVPosition(newPosition);
+    }
+
+    setupTVDragDrop(tvOverlay, trilhoMin, trilhoMax) {
+        let isDragging = false;
+        let startX = 0;
+        let startLeft = 0;
+
+        tvOverlay.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startLeft = parseFloat(tvOverlay.style.left) || 50; // 50% como padrão
+            
+            tvOverlay.style.cursor = 'grabbing';
+            tvOverlay.style.zIndex = '200'; // Z-index ainda maior durante o drag
+            
+            e.preventDefault();
+            console.log('📺 Iniciando drag da TV');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const container = document.getElementById('zones-background-container');
+            if (!container) return;
+
+            const containerWidth = container.offsetWidth;
+            const tvWidth = tvOverlay.offsetWidth;
+            
+            // Calcular nova posição em pixels
+            const newLeftPx = startLeft * containerWidth / 100 + deltaX;
+            const newLeftPercent = (newLeftPx / containerWidth) * 100;
+            
+            // Limitar dentro dos limites do container
+            const minLeft = (tvWidth / 2 / containerWidth) * 100;
+            const maxLeft = 100 - (tvWidth / 2 / containerWidth) * 100;
+            const clampedLeft = Math.max(minLeft, Math.min(maxLeft, newLeftPercent));
+            
+            tvOverlay.style.left = `${clampedLeft}%`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            tvOverlay.style.cursor = 'grab';
+            tvOverlay.style.zIndex = '100'; // Voltar ao z-index normal
+            
+            // Calcular posição final em cm
+            const finalLeftPercent = parseFloat(tvOverlay.style.left);
+            const trilhoLength = trilhoMax - trilhoMin;
+            const newPositionCm = trilhoMin + (finalLeftPercent / 100) * trilhoLength;
+            
+            console.log(`📺 TV movida para: ${newPositionCm.toFixed(1)}cm`);
+            this.updateTVPosition(newPositionCm);
+        });
     }
 
     setupMovableBullet(containerWidth, trilhoMin, trilhoMax) {
@@ -2201,9 +2687,17 @@ class TrilhoConfigurator {
             backgroundBullet.style.transform = 'translateY(-50%)';
         }
 
-        // Bullet do trilho removido (minimap não existe mais)
+        // Atualizar bullet do trilho
+        const trilhoBullet = document.getElementById('trilho-tv-bullet');
+        if (trilhoBullet) {
+            trilhoBullet.style.left = `${positionPercent}%`;
+        }
 
-        // Overlay de simulação removido (apenas bullet sobre a imagem)
+        // Atualizar TV simulation overlay
+        const tvSimulationOverlay = document.getElementById('zones-simulation-tv-overlay');
+        if (tvSimulationOverlay) {
+            tvSimulationOverlay.style.left = `${positionPercent}%`;
+        }
 
         // Atualizar configuração
         this.config.trilho.currentPositionCm = positionCm;
@@ -2702,6 +3196,9 @@ class TrilhoConfigurator {
 
     saveToLocalStorage() {
         try {
+            // Limpar dados desnecessários antes de salvar
+            this.cleanupLocalStorage();
+            
             // Criar uma cópia da config sem o uploadedFile (não pode ser serializado)
             const configToSave = { ...this.config };
             if (configToSave.background && configToSave.background.uploadedFile) {
@@ -2718,7 +3215,7 @@ class TrilhoConfigurator {
                 currentStep: this.currentStep,
                 completedSteps: Array.from(this.completedSteps),
                 config: configToSave,
-                zones: this.zones,
+                // zones: this.zones, // Removido - salvo separadamente em trilho-zones
                 lastSaved: new Date().toISOString()
             };
             
@@ -2726,6 +3223,369 @@ class TrilhoConfigurator {
             console.log('Estado do wizard salvo no localStorage');
         } catch (error) {
             console.error('Erro ao salvar no localStorage:', error);
+            if (error.name === 'QuotaExceededError') {
+                console.log('🧹 Quota excedida, executando limpeza forçada...');
+                this.forceCleanupLocalStorage();
+                // Tentar salvar novamente após limpeza
+                try {
+                    const configToSave = { ...this.config };
+                    if (configToSave.background && configToSave.background.uploadedFile) {
+                        configToSave.background = {
+                            ...configToSave.background,
+                            uploadedFile: null,
+                            hasUploadedFile: true,
+                            imageFile: this.config.background.imageFile || this.config.background.uploadedFile?.name || ''
+                        };
+                    }
+                    
+                    const wizardState = {
+                        currentStep: this.currentStep,
+                        completedSteps: Array.from(this.completedSteps),
+                        config: configToSave,
+                        zones: this.zones,
+                        lastSaved: new Date().toISOString()
+                    };
+                    
+                    localStorage.setItem('trilho-wizard-state', JSON.stringify(wizardState));
+                    console.log('✅ Dados salvos após limpeza forçada');
+                } catch (retryError) {
+                    console.error('❌ Ainda não foi possível salvar após limpeza:', retryError);
+                    this.showStorageFullDialog();
+                }
+            }
+        }
+    }
+
+    cleanupLocalStorage() {
+        // Remover dados antigos ou desnecessários
+        const keysToRemove = [];
+        
+        // Verificar todas as chaves do localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('trilho-')) {
+                // Manter apenas as chaves essenciais
+                if (!['trilho-wizard-state', 'trilho-zones', 'trilho-background-image'].includes(key)) {
+                    keysToRemove.push(key);
+                }
+            }
+        }
+        
+        // Remover chaves desnecessárias
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`🗑️ Removido: ${key}`);
+        });
+        
+        if (keysToRemove.length > 0) {
+            console.log(`🧹 Limpeza concluída: ${keysToRemove.length} itens removidos`);
+        }
+    }
+
+    forceCleanupLocalStorage() {
+        // Limpeza mais agressiva em caso de quota excedida
+        console.log('🧹 Executando limpeza forçada do localStorage...');
+        
+        // Remover dados de background antigos (podem ser grandes)
+        const backgroundKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('background') || key.includes('image'))) {
+                backgroundKeys.push(key);
+            }
+        }
+        
+        // Manter apenas o background mais recente
+        if (backgroundKeys.length > 1) {
+            backgroundKeys.slice(0, -1).forEach(key => {
+                localStorage.removeItem(key);
+                console.log(`🗑️ Removido background antigo: ${key}`);
+            });
+        }
+        
+        // Limpar dados de zonas com vídeos extremamente grandes (apenas acima de 50MB)
+        const zones = JSON.parse(localStorage.getItem('trilho-zones') || '[]');
+        const cleanedZones = zones.map(zone => {
+            // Remover apenas vídeos extremamente grandes (acima de 50MB)
+            if (zone.videoData && zone.videoData.length > 50000000) {
+                console.log(`🗑️ Removendo vídeo extremamente grande da zona: ${zone.name} (${(zone.videoData.length / 1024 / 1024).toFixed(1)}MB)`);
+                zone.videoData = null;
+                zone.type = 'text'; // Converter para texto se não tiver imagem
+                zone.text = zone.text || 'Vídeo removido por ser extremamente grande';
+            }
+            return zone;
+        });
+        
+        if (zones.length !== cleanedZones.length || zones.some((zone, i) => zone.videoData !== cleanedZones[i].videoData)) {
+            localStorage.setItem('trilho-zones', JSON.stringify(cleanedZones));
+            console.log('✂️ Dados de vídeo otimizados');
+        }
+        
+        // Limpar dados de configuração antigos
+        const configKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('config') && key !== 'trilho-wizard-state') {
+                configKeys.push(key);
+            }
+        }
+        
+        configKeys.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`🗑️ Removido config antigo: ${key}`);
+        });
+        
+        // Limpar trilho-wizard-state se muito grande
+        try {
+            const currentState = localStorage.getItem('trilho-wizard-state');
+            if (currentState && currentState.length > 2 * 1024 * 1024) { // 2MB
+                console.log('🗑️ trilho-wizard-state muito grande, limpando...');
+                localStorage.removeItem('trilho-wizard-state');
+            }
+        } catch (error) {
+            console.log('Erro ao verificar tamanho do wizard state:', error);
+        }
+    }
+
+    checkLocalStorageUsage() {
+        let totalSize = 0;
+        const items = [];
+        
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const value = localStorage.getItem(key);
+            const size = new Blob([value]).size;
+            totalSize += size;
+            items.push({ key, size });
+        }
+        
+        const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+        console.log(`📊 Uso do localStorage: ${totalSizeMB}MB`);
+        
+        // Mostrar os maiores itens
+        items.sort((a, b) => b.size - a.size);
+        console.log('📋 Maiores itens no localStorage:');
+        items.slice(0, 5).forEach(item => {
+            const sizeMB = (item.size / (1024 * 1024)).toFixed(2);
+            console.log(`  - ${item.key}: ${sizeMB}MB`);
+        });
+        
+        return { totalSize, totalSizeMB, items };
+    }
+
+    showStorageFullDialog() {
+        // Criar modal de armazenamento cheio
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.zIndex = '10000';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3>⚠️ Armazenamento Cheio</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="storage-warning">
+                        <p><strong>⚠️ O armazenamento local está cheio!</strong></p>
+                        <p>Isso geralmente acontece quando há vídeos muito grandes salvos. Para continuar usando o configurador, você precisa limpar alguns dados.</p>
+                    </div>
+                    <div class="storage-info">
+                        <h4>Opções disponíveis:</h4>
+                        <div class="storage-options">
+                            <button class="btn btn-warning" onclick="window.trilhoConfigurator.clearAllData()">
+                                🗑️ Limpar Todos os Dados
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.trilhoConfigurator.clearOldData()">
+                                🧹 Limpar Dados Antigos
+                            </button>
+                            <button class="btn btn-info" onclick="window.trilhoConfigurator.showStorageDetails()">
+                                📊 Ver Detalhes
+                            </button>
+                        </div>
+                    </div>
+                    <div class="storage-tip">
+                        <p><strong>💡 Dica:</strong> Arquivos grandes podem ocupar muito espaço. Use o botão "Limpar Dados Antigos" para liberar espaço automaticamente.</p>
+                    </div>
+                    <div class="storage-warning">
+                        <small>⚠️ <strong>Limpar Todos os Dados</strong> irá remover todas as configurações e zonas salvas.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Adicionar estilos se não existirem
+        if (!document.getElementById('storage-modal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'storage-modal-styles';
+            style.textContent = `
+                .storage-info {
+                    margin: 1rem 0;
+                }
+                .storage-options {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    margin: 1rem 0;
+                }
+                .storage-options .btn {
+                    padding: 0.75rem;
+                    text-align: left;
+                }
+                .storage-warning {
+                    background: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    border-radius: 4px;
+                    padding: 0.75rem;
+                    margin-top: 1rem;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    clearAllData() {
+        if (confirm('⚠️ Tem certeza que deseja limpar TODOS os dados? Esta ação não pode ser desfeita.')) {
+            localStorage.clear();
+            console.log('🗑️ Todos os dados do localStorage foram removidos');
+            this.showToast('Todos os dados foram limpos. Recarregue a página.', 'success');
+            
+            // Fechar modal
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) modal.remove();
+            
+            // Recarregar página após 2 segundos
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+    }
+
+    clearOldData() {
+        console.log('🧹 Limpando dados antigos...');
+        
+        // Limpeza mais agressiva
+        this.forceCleanupLocalStorage();
+        
+        // Remover dados de wizard antigos
+        const wizardKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('wizard') && key !== 'trilho-wizard-state') {
+                wizardKeys.push(key);
+            }
+        }
+        
+        wizardKeys.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`🗑️ Removido wizard antigo: ${key}`);
+        });
+        
+        // Tentar salvar novamente
+        try {
+            this.saveToLocalStorage();
+            this.showToast('Dados antigos removidos com sucesso!', 'success');
+            
+            // Fechar modal
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) modal.remove();
+        } catch (error) {
+            console.error('❌ Ainda não foi possível salvar:', error);
+            this.showToast('Ainda não foi possível salvar. Tente limpar todos os dados.', 'error');
+        }
+    }
+
+    showStorageDetails() {
+        const usage = this.checkLocalStorageUsage();
+        
+        // Criar modal de detalhes
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.zIndex = '10001';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3>📊 Detalhes do Armazenamento</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="storage-summary">
+                        <h4>Uso Total: ${usage.totalSizeMB}MB</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(100, (usage.totalSize / (5 * 1024 * 1024)) * 100)}%"></div>
+                        </div>
+                        <small>Limite aproximado: 5MB</small>
+                    </div>
+                    <div class="storage-items">
+                        <h4>Maiores Itens:</h4>
+                        <div class="items-list">
+                            ${usage.items.slice(0, 10).map(item => {
+                                const sizeMB = (item.size / (1024 * 1024)).toFixed(2);
+                                return `<div class="item-row">
+                                    <span class="item-key">${item.key}</span>
+                                    <span class="item-size">${sizeMB}MB</span>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Adicionar estilos para detalhes
+        if (!document.getElementById('storage-details-styles')) {
+            const style = document.createElement('style');
+            style.id = 'storage-details-styles';
+            style.textContent = `
+                .storage-summary {
+                    margin: 1rem 0;
+                }
+                .progress-bar {
+                    width: 100%;
+                    height: 20px;
+                    background: #e0e0e0;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    margin: 0.5rem 0;
+                }
+                .progress-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+                    transition: width 0.3s ease;
+                }
+                .items-list {
+                    max-height: 300px;
+                    overflow-y: auto;
+                }
+                .item-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0.5rem;
+                    border-bottom: 1px solid #eee;
+                }
+                .item-key {
+                    font-family: monospace;
+                    font-size: 0.9rem;
+                }
+                .item-size {
+                    font-weight: bold;
+                    color: #666;
+                }
+            `;
+            document.head.appendChild(style);
         }
     }
 
@@ -2748,9 +3608,8 @@ class TrilhoConfigurator {
                     }
                 }
                 
-                if (state.zones) {
-                    this.zones = state.zones;
-                }
+                // Carregar zonas separadamente do trilho-zones
+                this.loadZonesFromStorage();
                 
                 console.log('Estado do wizard carregado do localStorage');
                 console.log('Step atual:', this.currentStep);
@@ -2794,10 +3653,17 @@ class TrilhoConfigurator {
         
         // Ir para próxima etapa
         if (this.currentStep < this.totalSteps) {
-        this.currentStep++;
-        this.updateWizardUI();
-        this.updateURL();
-        this.saveToLocalStorage();
+            this.currentStep++;
+            this.updateWizardUI();
+            this.updateURL();
+            
+            // Salvar estado (zones são salvas separadamente)
+            console.log('💾 Salvando estado antes de avançar - Zonas atuais:', this.zones);
+            try {
+                this.saveToLocalStorage();
+            } catch (error) {
+                console.log('⚠️ Erro ao salvar wizard state, mas zonas são salvas separadamente');
+            }
         }
     }
 
@@ -3435,20 +4301,24 @@ class TrilhoConfigurator {
         const mediaFiles = [];
         
         this.zones.forEach(zone => {
-            // Verificar arquivos de imagem
-            if (zone.type === 0 && zone.imageSettings?.uploadedFile) {
+            // Verificar dados de imagem (Base64)
+            if (zone.type === 'image' && zone.imageData) {
+                const fileName = `${zone.name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+                const file = this.base64ToFile(zone.imageData, fileName, 'image/jpeg');
                 mediaFiles.push({
-                    name: zone.imageSettings.imageFile || 'image.jpg',
-                    file: zone.imageSettings.uploadedFile,
+                    name: fileName,
+                    file: file,
                     type: 'image'
                 });
             }
             
-            // Verificar arquivos de vídeo
-            if (zone.type === 1 && zone.videoSettings?.uploadedFile) {
+            // Verificar dados de vídeo (Base64)
+            if (zone.type === 'video' && zone.videoData) {
+                const fileName = `${zone.name.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
+                const file = this.base64ToFile(zone.videoData, fileName, 'video/mp4');
                 mediaFiles.push({
-                    name: zone.videoSettings.videoFile || 'video.mp4',
-                    file: zone.videoSettings.uploadedFile,
+                    name: fileName,
+                    file: file,
                     type: 'video'
                 });
             }
@@ -3464,6 +4334,23 @@ class TrilhoConfigurator {
         }
         
         return mediaFiles;
+    }
+    
+    base64ToFile(base64Data, fileName, mimeType) {
+        // Extrair os dados Base64 (remover o prefixo data:image/...;base64,)
+        const base64 = base64Data.split(',')[1];
+        
+        // Converter para bytes
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        
+        // Criar Blob e File
+        const blob = new Blob([byteArray], { type: mimeType });
+        return new File([blob], fileName, { type: mimeType });
     }
     
     async createUnityPackage(configData, mediaFiles) {
@@ -3730,6 +4617,130 @@ Data: ${new Date().toLocaleDateString('pt-BR')}
         });
         
         console.log('Botões de reset inicializados com sucesso');
+        
+        // Adicionar botão de gerenciamento de armazenamento
+        this.addStorageManagementButton();
+    }
+
+    addStorageManagementButton() {
+        // Procurar por um local adequado para adicionar o botão
+        const header = document.querySelector('.header-actions');
+        if (header) {
+            const storageBtn = document.createElement('button');
+            storageBtn.className = 'btn btn-sm btn-outline-secondary';
+            storageBtn.innerHTML = '🗄️ Armazenamento';
+            storageBtn.title = 'Gerenciar armazenamento local';
+            storageBtn.addEventListener('click', () => {
+                this.showStorageManagementDialog();
+            });
+            header.appendChild(storageBtn);
+            console.log('✅ Botão de gerenciamento de armazenamento adicionado');
+        }
+    }
+
+    showStorageManagementDialog() {
+        const usage = this.checkLocalStorageUsage();
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.zIndex = '10000';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3>🗄️ Gerenciamento de Armazenamento</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="storage-summary">
+                        <h4>Uso Atual: ${usage.totalSizeMB}MB</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(100, (usage.totalSize / (5 * 1024 * 1024)) * 100)}%"></div>
+                        </div>
+                        <small>Limite aproximado: 5MB</small>
+                    </div>
+                    <div class="storage-actions">
+                        <h4>Ações Disponíveis:</h4>
+                        <div class="action-buttons">
+                            <button class="btn btn-info" onclick="window.trilhoConfigurator.showStorageDetails()">
+                                📊 Ver Detalhes Completos
+                            </button>
+                            <button class="btn btn-warning" onclick="window.trilhoConfigurator.clearOldData()">
+                                🧹 Limpar Dados Antigos
+                            </button>
+                            <button class="btn btn-danger" onclick="window.trilhoConfigurator.clearAllData()">
+                                🗑️ Limpar Todos os Dados
+                            </button>
+                        </div>
+                    </div>
+                    <div class="storage-tips">
+                        <h4>💡 Dicas:</h4>
+                        <ul>
+                            <li><strong>Limpar Dados Antigos:</strong> Remove versões antigas mantendo dados atuais</li>
+                            <li><strong>Ver Detalhes:</strong> Mostra quais itens ocupam mais espaço</li>
+                            <li><strong>Limpar Tudo:</strong> Remove todos os dados (use com cuidado)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Adicionar estilos se não existirem
+        if (!document.getElementById('storage-management-styles')) {
+            const style = document.createElement('style');
+            style.id = 'storage-management-styles';
+            style.textContent = `
+                .storage-summary {
+                    margin: 1rem 0;
+                    padding: 1rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                }
+                .progress-bar {
+                    width: 100%;
+                    height: 20px;
+                    background: #e0e0e0;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    margin: 0.5rem 0;
+                }
+                .progress-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+                    transition: width 0.3s ease;
+                }
+                .storage-actions {
+                    margin: 1rem 0;
+                }
+                .action-buttons {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    margin: 1rem 0;
+                }
+                .storage-tips {
+                    background: #e3f2fd;
+                    border: 1px solid #bbdefb;
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin-top: 1rem;
+                }
+                .storage-tips ul {
+                    margin: 0.5rem 0;
+                    padding-left: 1.5rem;
+                }
+                .storage-tips li {
+                    margin: 0.25rem 0;
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
 
     initializeStickyActions() {
